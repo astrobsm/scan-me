@@ -2,6 +2,36 @@
   margin-bottom: 2rem;
 }
 
+/* Language Selector */
+.language-selector-scan {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: var(--radius);
+}
+
+.language-selector-scan label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.language-selector-scan select {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+}
+
+.language-selector-scan select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* Upload Area */
 .upload-area {
   border: 2px dashed var(--border);
@@ -32,6 +62,16 @@
   font-size: 0.875rem;
 }
 
+.upload-buttons {
+  margin-top: 1.5rem;
+}
+
+.camera-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Processing */
 .processing {
   text-align: center;
@@ -57,6 +97,28 @@
 
 .processing p {
   color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  max-width: 300px;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 auto 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #667eea);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-weight: 600;
+  color: var(--primary);
 }
 
 /* Results */
@@ -90,12 +152,25 @@
 }
 
 .confidence-badge {
-  background: #dcfce7;
-  color: #16a34a;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.confidence-badge.high {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.confidence-badge.medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.confidence-badge.low {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 .image-preview {
@@ -110,6 +185,42 @@
   max-width: 100%;
   max-height: 300px;
   border-radius: 4px;
+}
+
+.image-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.image-actions .btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.rescan-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.rescan-options label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.rescan-options select {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
 }
 
 .text-editor {
@@ -139,4 +250,9 @@
 .actions .btn {
   flex: 1;
   min-width: 100px;
+}
+
+.actions .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

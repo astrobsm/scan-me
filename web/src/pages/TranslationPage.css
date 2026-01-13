@@ -1,0 +1,406 @@
+/**
+ * CHARLES-DOUGLAS SCAN APP
+ * Nigerian Languages Translation Page Styles
+ */
+
+.translation-page {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.translation-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.translation-header h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #008751 0%, #ffffff 50%, #008751 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.translation-header p {
+  color: #666;
+}
+
+.translation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Language Selector */
+.language-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.language-dropdown select {
+  padding: 12px 20px;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 25px;
+  background: white;
+  cursor: pointer;
+  min-width: 220px;
+  transition: border-color 0.2s;
+}
+
+.language-dropdown select:focus {
+  outline: none;
+  border-color: #008751;
+}
+
+.swap-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid #008751;
+  background: white;
+  color: #008751;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.swap-button:hover {
+  background: #008751;
+  color: white;
+  transform: rotate(180deg);
+}
+
+/* Translation Boxes */
+.translation-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .translation-boxes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.translation-box {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.lang-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.box-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #008751;
+  transform: scale(1.1);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-btn.active {
+  background: #008751;
+  animation: pulse-green 1s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 135, 81, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(0, 135, 81, 0); }
+}
+
+.translation-box textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 16px;
+  border: none;
+  font-size: 1.1rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.translation-box textarea:focus {
+  outline: none;
+}
+
+.translated-text {
+  padding: 16px;
+  min-height: 150px;
+  font-size: 1.1rem;
+  color: #333;
+  background: #fafafa;
+}
+
+.translated-text .placeholder {
+  color: #999;
+  font-style: italic;
+}
+
+.translating {
+  color: #008751;
+  font-style: italic;
+}
+
+.listening-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  color: #008751;
+  font-size: 0.9rem;
+}
+
+.listening-indicator .pulse {
+  width: 12px;
+  height: 12px;
+  background: #008751;
+  border-radius: 50%;
+  animation: pulse-scale 1s infinite;
+}
+
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+}
+
+/* Confidence Bar */
+.confidence-bar {
+  position: relative;
+  height: 24px;
+  background: #e9ecef;
+  margin: 0 16px 16px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #008751 0%, #00a651 100%);
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+.confidence-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Phrases Toggle */
+.phrases-toggle {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #008751 0%, #00a651 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  align-self: center;
+}
+
+.phrases-toggle:hover {
+  transform: scale(1.05);
+}
+
+/* Phrases Section */
+.phrases-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.category-tab {
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.category-tab:hover {
+  border-color: #008751;
+}
+
+.category-tab.active {
+  background: #008751;
+  color: white;
+  border-color: #008751;
+}
+
+.phrases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.phrase-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.phrase-card:hover {
+  background: #e8f5e9;
+  transform: translateX(4px);
+}
+
+.phrase-source {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+}
+
+.phrase-arrow {
+  color: #008751;
+  font-weight: bold;
+}
+
+.phrase-target {
+  flex: 1;
+  color: #008751;
+  font-weight: 600;
+}
+
+.phrase-speak {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.phrase-speak:hover {
+  background: #008751;
+  transform: scale(1.1);
+}
+
+/* Language Cards */
+.language-cards {
+  margin-top: 20px;
+}
+
+.language-cards h3 {
+  text-align: center;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.language-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+
+.language-card:hover {
+  transform: translateY(-4px);
+  border-color: #008751;
+  box-shadow: 0 8px 30px rgba(0, 135, 81, 0.2);
+}
+
+.card-flag {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.card-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.card-native {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Source box styling */
+.source-box {
+  border: 2px solid #e0e0e0;
+}
+
+.source-box:focus-within {
+  border-color: #008751;
+}
+
+/* Target box styling */
+.target-box {
+  border: 2px solid #008751;
+  background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+}

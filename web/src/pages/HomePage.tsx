@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, Zap, Shield, FileText, Globe } from 'lucide-react';
+import { Camera, Upload, Zap, Shield, FileText, Globe, Languages, Volume2 } from 'lucide-react';
 import './HomePage.css';
 
 export function HomePage() {
@@ -21,16 +21,16 @@ export function HomePage() {
             <Camera size={24} />
             Start Scanning
           </Link>
-          <Link to="/scan" className="btn btn-secondary btn-large">
-            <Upload size={24} />
-            Upload Image
+          <Link to="/translate" className="btn btn-secondary btn-large">
+            <Languages size={24} />
+            Translate
           </Link>
         </div>
       </section>
 
       {/* Features Grid */}
       <section className="features">
-        <h2 className="section-title">Why Choose SCAN ME?</h2>
+        <h2 className="section-title">Why Choose CHARLES-DOUGLAS?</h2>
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">
@@ -46,6 +46,22 @@ export function HomePage() {
             </div>
             <h3>Medical Mode</h3>
             <p>Enhanced recognition for prescriptions and clinical notes.</p>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon translate">
+              <Languages size={32} />
+            </div>
+            <h3>Nigerian Languages</h3>
+            <p>Translate to Igbo, Hausa, Yoruba, and Pidgin English with voice.</p>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon">
+              <Volume2 size={32} />
+            </div>
+            <h3>Text-to-Speech</h3>
+            <p>Listen to translated text in native Nigerian language voices.</p>
           </div>
 
           <div className="feature-card">

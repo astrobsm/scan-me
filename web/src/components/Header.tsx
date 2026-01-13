@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, Clock, Settings, Scan, Volume2, Mic } from 'lucide-react';
+import { FileText, Clock, Settings, Scan, Volume2, Mic, Languages } from 'lucide-react';
 import './Header.css';
 
 export function Header() {
@@ -9,6 +9,7 @@ export function Header() {
   const navItems = [
     { path: '/', label: 'Home', icon: FileText },
     { path: '/scan', label: 'Scan', icon: Scan },
+    { path: '/translate', label: 'Translate', icon: Languages },
     { path: '/text-to-speech', label: 'TTS', icon: Volume2 },
     { path: '/speech-to-text', label: 'STT', icon: Mic },
     { path: '/history', label: 'History', icon: Clock },

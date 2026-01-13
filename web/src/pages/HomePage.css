@@ -81,6 +81,11 @@
   color: #d97706;
 }
 
+.feature-icon.translate {
+  background: #d1fae5;
+  color: #059669;
+}
+
 .feature-card h3 {
   font-size: 1.125rem;
   margin-bottom: 0.5rem;

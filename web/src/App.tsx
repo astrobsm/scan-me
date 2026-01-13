@@ -8,6 +8,7 @@ import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TextToSpeechPage } from './pages/TextToSpeechPage';
 import { SpeechToTextPage } from './pages/SpeechToTextPage';
+import { TranslationPage } from './pages/TranslationPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/scan" element={<ScanPage />} />
+          <Route path="/translate" element={<TranslationPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/text-to-speech" element={<TextToSpeechPage />} />

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="192" height="192" rx="32" fill="url(#bgGrad)"/>
+  
+  <!-- Scanner frame -->
+  <rect x="36" y="36" width="120" height="120" rx="8" fill="none" stroke="url(#accentGrad)" stroke-width="6"/>
+  
+  <!-- Corner accents -->
+  <path d="M36 60 L36 36 L60 36" fill="none" stroke="#667eea" stroke-width="8" stroke-linecap="round"/>
+  <path d="M132 36 L156 36 L156 60" fill="none" stroke="#667eea" stroke-width="8" stroke-linecap="round"/>
+  <path d="M156 132 L156 156 L132 156" fill="none" stroke="#764ba2" stroke-width="8" stroke-linecap="round"/>
+  <path d="M60 156 L36 156 L36 132" fill="none" stroke="#764ba2" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Document lines -->
+  <line x1="56" y1="76" x2="136" y2="76" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  <line x1="56" y1="96" x2="120" y2="96" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="56" y1="116" x2="128" y2="116" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  
+  <!-- CD initials -->
+  <text x="96" y="165" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle" opacity="0.8">CD</text>
+</svg>

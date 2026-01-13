@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "CHARLES-DOUGLAS SCAN APP",
+    "slug": "charles-douglas-scan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.scanme.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SCAN ME needs camera access to scan handwritten documents",
+        "NSPhotoLibraryUsageDescription": "SCAN ME needs photo library access to import images"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563eb"
+      },
+      "package": "com.scanme.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SCAN ME to access your camera for document scanning"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SCAN ME to access your photos for importing documents"
+        }
+      ]
+    ]
+  }
+}

@@ -10,6 +10,23 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
+  optimizeDeps: {
+    include: ['three', '@react-three/fiber', '@react-three/drei'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          'react-three': ['@react-three/fiber', '@react-three/drei'],
+        },
+      },
+    },
+  },
   server: {
     port: 3006,
     hmr: {

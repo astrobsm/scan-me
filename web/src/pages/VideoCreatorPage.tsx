@@ -28,7 +28,8 @@ import {
   Upload,
   FileText,
   Copy,
-  Eye
+  Eye,
+  Box
 } from 'lucide-react';
 import {
   videoCreator,
@@ -45,8 +46,34 @@ import {
   ExportProgress
 } from '../services/VideoCreator';
 import { videoPreviewEngine, PreviewState } from '../services/VideoPreviewEngine';
-import { REALISTIC_AVATARS, RealisticAvatar, EMOTION_PRESETS, AvatarRenderer } from '../services/RealisticAvatar';
+import { REALISTIC_AVATARS, RealisticAvatar as ServiceRealisticAvatar, EMOTION_PRESETS, AvatarRenderer } from '../services/RealisticAvatar';
 import { bulkDialogueService, BulkDialogueEntry, DIALOGUE_TEMPLATES, DialogueTemplate } from '../services/BulkDialogueService';
+import { 
+  PHOTOREALISTIC_AVATARS, 
+  avatarLoader, 
+  getAvatarById as getPhotoAvatarById,
+  PhotorealisticAvatar 
+} from '../services/PhotorealisticAvatarLibrary';
+
+// Import Advanced 3D Avatar data (stable Three.js 0.160 + Fiber 8.15 + Drei 9.92)
+import {
+  NIGERIAN_3D_AVATARS,
+  filterAvatarsByAge,
+  filterAvatarsByGender,
+  filterAvatarsByEthnicity,
+  type Avatar3DProfile,
+  type Avatar3DViewerProps,
+  type AvatarCardProps
+} from '../components/Avatar3D/Advanced3DEngine';
+
+// Lazy load 3D components to prevent initialization crashes
+const Avatar3DViewer = React.lazy(() => 
+  import('../components/Avatar3D/Advanced3DEngine').then(mod => ({ default: mod.Avatar3DViewer }))
+);
+const Avatar3DCard = React.lazy(() => 
+  import('../components/Avatar3D/Advanced3DEngine').then(mod => ({ default: mod.Avatar3DCard }))
+);
+
 import { 
   NIGERIAN_AVATAR_LIBRARY, 
   AVATAR_CATEGORIES, 
@@ -111,6 +138,14 @@ export function VideoCreatorPage() {
   const [uploadFormat, setUploadFormat] = useState<'csv' | 'json' | 'txt'>('csv');
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [previewAvatarId, setPreviewAvatarId] = useState<string>('');
+  const [use3DAvatars, setUse3DAvatars] = useState(true); // Enable 3D avatars by default
+  const [realistic3DAvatar, setRealistic3DAvatar] = useState<Avatar3DProfile | null>(null);
+  const [selected3DAvatar, setSelected3DAvatar] = useState<string>(''); // Currently selected 3D avatar
+  const [avatar3DAge, setAvatar3DAge] = useState<string>('all');
+  const [avatar3DGender, setAvatar3DGender] = useState<string>('all');
+  const [avatar3DEthnicity, setAvatar3DEthnicity] = useState<string>('all');
+  const [avatar3DIsSpeaking, setAvatar3DIsSpeaking] = useState(false);
+  const [avatar3DEmotion, setAvatar3DEmotion] = useState<string>('neutral');
   
   // Library filter state
   const [avatarCategory, setAvatarCategory] = useState('all');
@@ -150,8 +185,39 @@ export function VideoCreatorPage() {
     setSelectedBackground('bg-1');
   };
   
-  // Add participant
-  const addParticipant = (avatar: Avatar) => {
+  // Add participant (supports both Avatar and PhotorealisticAvatar)
+  const addParticipant = (avatarInput: Avatar | PhotorealisticAvatar) => {
+    // Convert PhotorealisticAvatar to Avatar format if needed
+    let avatar: Avatar;
+    if ('thumbnailUrl' in avatarInput) {
+      // It's a PhotorealisticAvatar
+      const photoAvatar = avatarInput as PhotorealisticAvatar;
+      const styleMap: Record<string, 'professional' | 'casual' | 'medical' | 'animated'> = {
+        'doctor': 'medical',
+        'nurse': 'medical',
+        'pharmacist': 'medical',
+        'traditional': 'casual',
+        'farmer': 'casual',
+        'student': 'casual'
+      };
+      const profession = photoAvatar.profession.toLowerCase();
+      const style = Object.entries(styleMap).find(([key]) => profession.includes(key))?.[1] || 'professional';
+      
+      avatar = {
+        id: photoAvatar.id,
+        name: photoAvatar.name,
+        gender: photoAvatar.gender,
+        style,
+        skinTone: '#8B6914', // Default Nigerian skin tone
+        hairColor: '#1a1a1a',
+        hairStyle: 'natural',
+        outfit: photoAvatar.profession,
+        thumbnail: photoAvatar.thumbnailUrl
+      };
+    } else {
+      avatar = avatarInput as Avatar;
+    }
+    
     const position = participants.length === 0 ? 'left' : participants.length === 1 ? 'right' : 'center';
     const newParticipant: Participant = {
       id: videoCreator.generateId(),
@@ -435,39 +501,116 @@ export function VideoCreatorPage() {
     URL.revokeObjectURL(url);
   };
   
-  // Preview avatar with animation
-  const previewAvatar = (avatarId: string) => {
+  // Preview avatar with canvas animation
+  const previewAvatar = async (avatarId: string) => {
     setPreviewAvatarId(avatarId);
     setShowAvatarPreview(true);
     
-    // Render avatar preview after a short delay
-    setTimeout(() => {
+    // Render avatar preview after a short delay to allow modal to open
+    setTimeout(async () => {
       const canvas = avatarPreviewCanvasRef.current;
       if (!canvas) return;
       
-      const avatar = REALISTIC_AVATARS.find(a => a.id === avatarId);
-      if (!avatar) return;
-      
-      const renderer = new AvatarRenderer(canvas);
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      // Clear canvas
+      // Clear canvas with background
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Render avatar
-      renderer.renderAvatar(
-        avatar,
-        canvas.width * 0.25,
-        canvas.height * 0.05,
-        canvas.width * 0.5,
-        canvas.height * 0.9,
-        EMOTION_PRESETS.happy,
-        'smile',
-        0
-      );
-    }, 100);
+      // Try to find photorealistic avatar first
+      const photoAvatar = PHOTOREALISTIC_AVATARS.find(a => a.id === avatarId);
+      
+      if (photoAvatar) {
+        try {
+          // Load the photorealistic image
+          const img = await avatarLoader.loadImage(photoAvatar, 'full');
+          
+          // Calculate aspect ratio to fit image
+          const aspectRatio = img.width / img.height;
+          let drawWidth = canvas.width * 0.9;
+          let drawHeight = drawWidth / aspectRatio;
+          
+          if (drawHeight > canvas.height * 0.8) {
+            drawHeight = canvas.height * 0.8;
+            drawWidth = drawHeight * aspectRatio;
+          }
+          
+          const x = (canvas.width - drawWidth) / 2;
+          const y = (canvas.height - drawHeight) / 2;
+          
+          // Draw rounded rect clip
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(x, y, drawWidth, drawHeight, 12);
+          ctx.clip();
+          ctx.drawImage(img, x, y, drawWidth, drawHeight);
+          ctx.restore();
+          
+          // Draw border
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.roundRect(x, y, drawWidth, drawHeight, 12);
+          ctx.stroke();
+          
+          // Draw name label
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          ctx.fillRect(x, y + drawHeight - 40, drawWidth, 40);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(photoAvatar.name, canvas.width / 2, y + drawHeight - 15);
+          
+        } catch (err) {
+          console.error('Failed to load avatar image:', err);
+          // Draw placeholder on error
+          drawPlaceholder(ctx, canvas, photoAvatar.name);
+        }
+      } else {
+        // Check if it's a Realistic 3D avatar
+        const realistic3D = NIGERIAN_3D_AVATARS.find(a => a.id === avatarId);
+        if (realistic3D) {
+          setRealistic3DAvatar(realistic3D);
+          return; // Will show 3D viewer instead of canvas
+        }
+        
+        // Check Nigerian Avatar Library
+        const nigerianAvatar = NIGERIAN_AVATAR_LIBRARY.find(a => a.id === avatarId);
+        if (nigerianAvatar) {
+          drawPlaceholder(ctx, canvas, nigerianAvatar.name, nigerianAvatar.skinTone);
+        }
+      }
+    }, 150);
+  };
+  
+  // Preview 3D avatar 
+  const preview3DAvatar = (avatar: Avatar3DProfile) => {
+    setRealistic3DAvatar(avatar);
+    setShowAvatarPreview(true);
+  };
+  
+  // Helper function to draw placeholder avatar
+  const drawPlaceholder = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, name: string, color: string = '#3b82f6') => {
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw colored circle
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2 - 30, 100, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw initial
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.charAt(0), canvas.width / 2, canvas.height / 2 - 30);
+    
+    // Draw name
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(name, canvas.width / 2, canvas.height / 2 + 100);
   };
   
   // Preview dialogue
@@ -764,8 +907,21 @@ export function VideoCreatorPage() {
         );
         
       case 'participants':
-        const filteredAvatars = NIGERIAN_AVATAR_LIBRARY.filter(avatar => {
-          const categoryMatch = avatarCategory === 'all' || avatar.category === avatarCategory;
+        // Map photorealistic avatars to match UI filter categories
+        const getAvatarCategory = (avatar: PhotorealisticAvatar): string => {
+          const profession = avatar.profession.toLowerCase();
+          const tags = avatar.tags.map(t => t.toLowerCase());
+          if (profession.includes('doctor') || profession.includes('nurse') || tags.includes('medical')) return 'medical';
+          if (profession.includes('teacher') || profession.includes('student') || tags.includes('education')) return 'educational';
+          if (profession.includes('traditional') || profession.includes('chief') || tags.includes('traditional')) return 'traditional';
+          if (profession.includes('pastor') || profession.includes('imam') || tags.includes('religious')) return 'religious';
+          if (profession.includes('business') || profession.includes('lawyer') || tags.includes('professional')) return 'professional';
+          return 'casual';
+        };
+        
+        const filteredAvatars = PHOTOREALISTIC_AVATARS.filter(avatar => {
+          const category = getAvatarCategory(avatar);
+          const categoryMatch = avatarCategory === 'all' || category === avatarCategory;
           const ethnicityMatch = avatarEthnicity === 'all' || avatar.ethnicity === avatarEthnicity;
           const notSelected = !participants.some(p => p.avatar.id === avatar.id);
           return categoryMatch && ethnicityMatch && notSelected;
@@ -782,8 +938,12 @@ export function VideoCreatorPage() {
                 <div className="participants-list">
                   {participants.map((p, index) => (
                     <div key={p.id} className="participant-card">
-                      <div className="participant-avatar" style={{ background: p.avatar.skinTone }}>
-                        <span>{p.avatar.name.charAt(0)}</span>
+                      <div className="participant-avatar" style={{ background: p.avatar.thumbnail ? 'transparent' : p.avatar.skinTone }}>
+                        {p.avatar.thumbnail ? (
+                          <img src={p.avatar.thumbnail} alt={p.avatar.name} />
+                        ) : (
+                          <span>{p.avatar.name.charAt(0)}</span>
+                        )}
                       </div>
                       <div className="participant-info">
                         <h5>{p.name}</h5>
@@ -845,37 +1005,154 @@ export function VideoCreatorPage() {
               </div>
             )}
             
-            {/* Avatar Preview Modal */}
+            {/* Avatar Preview Modal - Realistic 3D */}
             {showAvatarPreview && (
-              <div className="modal-overlay" onClick={() => setShowAvatarPreview(false)}>
-                <div className="modal avatar-preview-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-overlay" onClick={() => { setShowAvatarPreview(false); setRealistic3DAvatar(null); }}>
+                <div className="modal avatar-preview-modal avatar-3d-modal" onClick={e => e.stopPropagation()}>
                   <div className="modal-header">
-                    <h3><Eye size={24} /> Avatar Preview</h3>
-                    <button className="btn-close" onClick={() => setShowAvatarPreview(false)}>
+                    <h3><Box size={24} /> {realistic3DAvatar ? '3D Avatar Preview' : 'Avatar Preview'}</h3>
+                    <button className="btn-close" onClick={() => { setShowAvatarPreview(false); setRealistic3DAvatar(null); }}>
                       <X size={20} />
                     </button>
                   </div>
                   <div className="modal-body">
-                    <canvas 
-                      ref={avatarPreviewCanvasRef} 
-                      width={400} 
-                      height={500}
-                      className="avatar-preview-canvas"
-                    />
-                    <div className="preview-emotions">
-                      <p>This avatar features:</p>
-                      <ul>
-                        <li>✅ Realistic facial expressions</li>
-                        <li>✅ Lip sync animation (11 mouth shapes)</li>
-                        <li>✅ Eye blinking & movements</li>
-                        <li>✅ Multiple emotion presets</li>
-                        <li>✅ Nigerian language support</li>
-                      </ul>
-                    </div>
+                    {realistic3DAvatar ? (
+                      <>
+                        {/* Advanced 3D Avatar Viewer */}
+                        <React.Suspense fallback={<div className="avatar-loading"><div className="avatar-loading-spinner"></div></div>}>
+                          <Avatar3DViewer
+                            avatar={realistic3DAvatar}
+                            emotion={avatar3DEmotion}
+                            isSpeaking={avatar3DIsSpeaking}
+                            width={450}
+                            height={500}
+                          />
+                        </React.Suspense>
+                        <div className="preview-controls-3d">
+                          <div className="avatar-3d-info">
+                            <h4>{realistic3DAvatar.name}</h4>
+                            <p><strong>Age:</strong> {realistic3DAvatar.age} years ({realistic3DAvatar.ageGroup})</p>
+                            <p><strong>Ethnicity:</strong> {realistic3DAvatar.ethnicity.charAt(0).toUpperCase() + realistic3DAvatar.ethnicity.slice(1)}</p>
+                            <p><strong>Gender:</strong> {realistic3DAvatar.gender}</p>
+                            <p>{realistic3DAvatar.description}</p>
+                          </div>
+                          <div className="emotion-controls">
+                            <p><strong>Test Emotions:</strong></p>
+                            <div className="emotion-buttons">
+                              {['neutral', 'happy', 'sad', 'surprised', 'angry'].map(em => (
+                                <button 
+                                  key={em}
+                                  className={`btn-emotion ${avatar3DEmotion === em ? 'active' : ''}`}
+                                  onClick={() => setAvatar3DEmotion(em)}
+                                >
+                                  {em === 'neutral' ? '😐' : em === 'happy' ? '😊' : em === 'sad' ? '😢' : em === 'surprised' ? '😲' : '😠'} {em}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="speaking-control">
+                            <button 
+                              className={`btn-speak ${avatar3DIsSpeaking ? 'active' : ''}`}
+                              onClick={() => setAvatar3DIsSpeaking(!avatar3DIsSpeaking)}
+                            >
+                              <Volume2 size={16} /> {avatar3DIsSpeaking ? 'Stop Speaking' : 'Test Speech'}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Fallback Canvas Preview */}
+                        <canvas 
+                          ref={avatarPreviewCanvasRef} 
+                          width={400} 
+                          height={450}
+                          className="avatar-preview-canvas"
+                        />
+                        <div className="preview-controls-3d">
+                          <p><strong>Avatar Features:</strong></p>
+                          <div className="preview-features">
+                            <ul>
+                              <li>🎭 Facial animations</li>
+                              <li>👄 Lip sync support</li>
+                              <li>👁️ Eye blinking</li>
+                              <li>🎨 Emotion presets</li>
+                              <li>🇳🇬 Nigerian accent support</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             )}
+            
+            {/* Realistic 3D Avatars Section */}
+            <div className="realistic-3d-avatars-section">
+              <h4>🌟 Realistic 3D Avatars - All Ages</h4>
+              <p className="section-description">
+                Professional 3D avatars with real human features - children, teens, adults, and seniors
+              </p>
+              
+              {/* Age/Gender/Ethnicity Filters */}
+              <div className="avatar-3d-filters">
+                <div className="filter-group">
+                  <label>Age Group:</label>
+                  <select value={avatar3DAge} onChange={e => setAvatar3DAge(e.target.value)}>
+                    <option value="all">All Ages</option>
+                    <option value="child">Children (5-12)</option>
+                    <option value="teen">Teenagers (13-19)</option>
+                    <option value="young-adult">Young Adults (20-29)</option>
+                    <option value="adult">Adults (30-44)</option>
+                    <option value="middle-aged">Middle-aged (45-59)</option>
+                    <option value="senior">Seniors (60+)</option>
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>Gender:</label>
+                  <select value={avatar3DGender} onChange={e => setAvatar3DGender(e.target.value)}>
+                    <option value="all">All</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div className="filter-group">
+                  <label>Ethnicity:</label>
+                  <select value={avatar3DEthnicity} onChange={e => setAvatar3DEthnicity(e.target.value)}>
+                    <option value="all">All</option>
+                    <option value="igbo">Igbo</option>
+                    <option value="yoruba">Yoruba</option>
+                    <option value="hausa">Hausa</option>
+                    <option value="fulani">Fulani</option>
+                    <option value="ijaw">Ijaw</option>
+                    <option value="edo">Edo</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* 3D Avatar Grid */}
+              <div className="realistic-3d-avatar-grid">
+                <React.Suspense fallback={<div className="avatar-loading"><div className="avatar-loading-spinner"></div></div>}>
+                  {filterAvatarsByEthnicity(
+                    filterAvatarsByGender(
+                      filterAvatarsByAge(NIGERIAN_3D_AVATARS, avatar3DAge),
+                      avatar3DGender
+                    ),
+                    avatar3DEthnicity
+                  ).map(avatar => (
+                    <Avatar3DCard
+                      key={avatar.id}
+                      avatar={avatar}
+                      selected={selected3DAvatar === avatar.id}
+                      onSelect={(a) => setSelected3DAvatar(a.id)}
+                      onPreview={(a) => preview3DAvatar(a)}
+                    />
+                  ))}
+                </React.Suspense>
+              </div>
+            </div>
             
             <div className="available-avatars">
               <div className="avatar-filters">
@@ -909,38 +1186,57 @@ export function VideoCreatorPage() {
               </div>
               
               <div className="avatars-grid nigerian-avatars">
-                {filteredAvatars.map(avatar => (
-                  <div key={avatar.id} className="avatar-card detailed">
-                    <div 
-                      className="avatar-preview" 
-                      style={{ background: avatar.skinTone }}
-                    >
-                      <span>{avatar.name.charAt(0)}</span>
-                      <div className="avatar-badge">{avatar.category === 'medical' ? '🏥' : avatar.category === 'traditional' ? '👑' : '✨'}</div>
-                    </div>
-                    <div className="avatar-info">
-                      <h5>{avatar.name}</h5>
-                      <span className="avatar-profession">{avatar.profession}</span>
-                      <span className="avatar-meta">{avatar.ethnicity} • {avatar.gender} • {avatar.ageGroup}</span>
-                    </div>
-                    <div className="avatar-actions">
-                      <button 
-                        className="btn-preview" 
-                        onClick={(e) => { e.stopPropagation(); previewAvatar(avatar.id); }}
-                        title="Preview avatar"
+                {filteredAvatars.map(avatar => {
+                  const category = getAvatarCategory(avatar);
+                  return (
+                    <div key={avatar.id} className="avatar-card detailed photorealistic">
+                      <div 
+                        className="avatar-preview has-image" 
                       >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        className="btn-add" 
-                        onClick={() => addParticipant(avatar as any)}
-                        title="Add to video"
-                      >
-                        <Plus size={16} />
-                      </button>
+                        <img 
+                          src={avatar.thumbnailUrl} 
+                          alt={avatar.name}
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            // Fallback to initial if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.style.background = '#3b82f6';
+                              const span = document.createElement('span');
+                              span.textContent = avatar.name.charAt(0);
+                              span.className = 'avatar-fallback-initial';
+                              parent.appendChild(span);
+                            }
+                          }}
+                        />
+                        <div className="avatar-badge">{category === 'medical' ? '🏥' : category === 'traditional' ? '👑' : category === 'religious' ? '⛪' : category === 'educational' ? '📚' : '✨'}</div>
+                      </div>
+                      <div className="avatar-info">
+                        <h5>{avatar.name}</h5>
+                        <span className="avatar-profession">{avatar.profession}</span>
+                        <span className="avatar-meta">{avatar.ethnicity} • {avatar.gender} • {avatar.ageGroup}</span>
+                      </div>
+                      <div className="avatar-actions">
+                        <button 
+                          className="btn-preview" 
+                          onClick={(e) => { e.stopPropagation(); previewAvatar(avatar.id); }}
+                          title="Preview avatar"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          className="btn-add" 
+                          onClick={() => addParticipant(avatar)}
+                          title="Add to video"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {filteredAvatars.length === 0 && (

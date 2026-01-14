@@ -93,7 +93,7 @@ export class ImagePreprocessor {
    */
   private async loadAsCanvas(source: HTMLImageElement | HTMLCanvasElement | ImageData | string): Promise<HTMLCanvasElement> {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
     if (typeof source === 'string') {
       return new Promise((resolve, reject) => {
@@ -132,7 +132,7 @@ export class ImagePreprocessor {
    * Convert to grayscale
    */
   private toGrayscale(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
@@ -151,7 +151,7 @@ export class ImagePreprocessor {
    * Simple noise reduction using median filter
    */
   private denoise(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -190,7 +190,7 @@ export class ImagePreprocessor {
    * Enhance contrast using histogram equalization
    */
   private enhanceContrast(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
@@ -227,7 +227,7 @@ export class ImagePreprocessor {
    * Remove background using local thresholding
    */
   private removeBackground(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -273,7 +273,7 @@ export class ImagePreprocessor {
    * Apply thresholding
    */
   private applyThreshold(canvas: HTMLCanvasElement, method: 'binary' | 'adaptive' | 'otsu'): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -352,7 +352,7 @@ export class ImagePreprocessor {
    * Adaptive thresholding using local mean
    */
   private adaptiveThreshold(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -395,7 +395,7 @@ export class ImagePreprocessor {
    * Deskew image using projection profile
    */
   private async deskew(canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -495,7 +495,7 @@ export class ImagePreprocessor {
     const rotated = document.createElement('canvas');
     rotated.width = newWidth;
     rotated.height = newHeight;
-    const ctx = rotated.getContext('2d')!;
+    const ctx = rotated.getContext('2d', { willReadFrequently: true })!;
 
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, newWidth, newHeight);
@@ -511,7 +511,7 @@ export class ImagePreprocessor {
    * Sharpen image using unsharp mask
    */
   private sharpen(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const width = canvas.width;
@@ -554,7 +554,7 @@ export class ImagePreprocessor {
    * Invert image colors
    */
   private invert(canvas: HTMLCanvasElement): HTMLCanvasElement {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 

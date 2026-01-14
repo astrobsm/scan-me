@@ -269,7 +269,7 @@ export class AdvancedOCR {
     source: HTMLImageElement | HTMLCanvasElement | string
   ): Promise<HTMLCanvasElement> {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
     if (typeof source === 'string') {
       return new Promise((resolve, reject) => {
@@ -307,10 +307,10 @@ export class AdvancedOCR {
     const result = document.createElement('canvas');
     result.width = canvas.width;
     result.height = canvas.height;
-    const ctx = result.getContext('2d')!;
+    const ctx = result.getContext('2d', { willReadFrequently: true })!;
     
     // Get image data
-    const srcCtx = canvas.getContext('2d')!;
+    const srcCtx = canvas.getContext('2d', { willReadFrequently: true })!;
     let imageData = srcCtx.getImageData(0, 0, canvas.width, canvas.height);
     let data: Uint8ClampedArray = new Uint8ClampedArray(imageData.data);
 

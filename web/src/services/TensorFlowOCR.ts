@@ -303,7 +303,7 @@ export class TensorFlowOCR {
    */
   private async loadImage(source: HTMLImageElement | HTMLCanvasElement | ImageData | string): Promise<HTMLCanvasElement> {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
 
     if (typeof source === 'string') {
       // Base64 or URL
@@ -343,7 +343,7 @@ export class TensorFlowOCR {
     lines: HTMLCanvasElement[];
     boundingBoxes: { x: number; y: number; width: number; height: number }[];
   }> {
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const { width, height, data } = imageData;
 
@@ -415,7 +415,7 @@ export class TensorFlowOCR {
       lineCanvas.width = width;
       lineCanvas.height = lineHeight + padding * 2;
       
-      const lineCtx = lineCanvas.getContext('2d')!;
+      const lineCtx = lineCanvas.getContext('2d', { willReadFrequently: true })!;
       lineCtx.fillStyle = 'white';
       lineCtx.fillRect(0, 0, lineCanvas.width, lineCanvas.height);
       lineCtx.drawImage(
@@ -493,7 +493,7 @@ export class TensorFlowOCR {
     const resizedCanvas = document.createElement('canvas');
     resizedCanvas.width = targetWidth;
     resizedCanvas.height = targetHeight;
-    const ctx = resizedCanvas.getContext('2d')!;
+    const ctx = resizedCanvas.getContext('2d', { willReadFrequently: true })!;
     
     // White background
     ctx.fillStyle = 'white';

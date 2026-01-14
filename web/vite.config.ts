@@ -12,5 +12,9 @@ export default defineConfig({
   },
   server: {
     port: 3006,
+    hmr: {
+      port: 3006,
+    },
+    strictPort: false,
   },
 });

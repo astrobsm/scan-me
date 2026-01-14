@@ -32,6 +32,158 @@
   border-color: var(--primary);
 }
 
+/* OCR Settings Panel */
+.ocr-settings {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 1rem;
+}
+
+.setting-row:last-child {
+  margin-bottom: 0;
+}
+
+.setting-row label {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 100px;
+}
+
+.setting-row select {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  flex: 1;
+  max-width: 300px;
+}
+
+.setting-row select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Engine Selector */
+.engine-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.engine-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.engine-btn:hover {
+  border-color: var(--primary);
+  background: #f0f9ff;
+}
+
+.engine-btn.active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #667eea);
+  color: white;
+}
+
+.engine-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Advanced Settings Toggle */
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.advanced-toggle:hover {
+  background: #e2e8f0;
+  color: var(--text);
+}
+
+/* Advanced Settings Panel */
+.advanced-settings {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+}
+
+.advanced-settings h4 {
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.threshold-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.threshold-selector label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.threshold-selector select {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+}
+
 /* Upload Area */
 .upload-area {
   border: 2px dashed var(--border);
@@ -203,19 +355,27 @@
 
 .rescan-options {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
   padding: 12px;
   background: #f8fafc;
   border-radius: 8px;
 }
 
+.rescan-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .rescan-options label {
   font-size: 0.875rem;
   color: var(--text-secondary);
+  min-width: 60px;
 }
 
-.rescan-options select {
+.rescan-options select,
+.rescan-option select {
   flex: 1;
   padding: 6px 12px;
   border: 1px solid var(--border);

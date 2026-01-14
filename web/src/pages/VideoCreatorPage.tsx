@@ -45,6 +45,29 @@ import {
 } from '../services/VideoCreator';
 import { REALISTIC_AVATARS, RealisticAvatar, EMOTION_PRESETS, AvatarRenderer } from '../services/RealisticAvatar';
 import { bulkDialogueService, BulkDialogueEntry, DIALOGUE_TEMPLATES, DialogueTemplate } from '../services/BulkDialogueService';
+import { 
+  NIGERIAN_AVATAR_LIBRARY, 
+  AVATAR_CATEGORIES, 
+  ETHNICITIES,
+  getAvatarsByCategory,
+  getAvatarsByEthnicity,
+  DetailedAvatar 
+} from '../services/NigerianAvatarLibrary';
+import { 
+  BACKGROUND_LIBRARY, 
+  BACKGROUND_CATEGORIES,
+  getBackgroundsByCategory,
+  Background as LibraryBackground
+} from '../services/BackgroundLibrary';
+import { 
+  NIGERIAN_VOICE_LIBRARY, 
+  LANGUAGE_CATEGORIES,
+  EMOTION_VOICE_SETTINGS,
+  getVoicesByLanguage,
+  applyEmotionToVoice,
+  NigerianVoice,
+  EmotionType
+} from '../services/NigerianVoiceLibrary';
 import './VideoCreatorPage.css';
 
 type WizardStep = 'type' | 'topic' | 'participants' | 'dialogue' | 'background' | 'preview' | 'export';
@@ -82,6 +105,13 @@ export function VideoCreatorPage() {
   const [uploadFormat, setUploadFormat] = useState<'csv' | 'json' | 'txt'>('csv');
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [previewAvatarId, setPreviewAvatarId] = useState<string>('');
+  
+  // Library filter state
+  const [avatarCategory, setAvatarCategory] = useState('all');
+  const [avatarEthnicity, setAvatarEthnicity] = useState('all');
+  const [backgroundCategory, setBackgroundCategory] = useState('all');
+  const [voiceLanguage, setVoiceLanguage] = useState('all');
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('');
   
   // Refs
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -636,10 +666,17 @@ export function VideoCreatorPage() {
         );
         
       case 'participants':
+        const filteredAvatars = NIGERIAN_AVATAR_LIBRARY.filter(avatar => {
+          const categoryMatch = avatarCategory === 'all' || avatar.category === avatarCategory;
+          const ethnicityMatch = avatarEthnicity === 'all' || avatar.ethnicity === avatarEthnicity;
+          const notSelected = !participants.some(p => p.avatar.id === avatar.id);
+          return categoryMatch && ethnicityMatch && notSelected;
+        });
+        
         return (
           <div className="wizard-step step-participants">
             <h2>Select Your Avatars</h2>
-            <p className="step-description">Choose characters with realistic animations and lip sync</p>
+            <p className="step-description">Choose from our rich library of Nigerian characters with realistic animations</p>
             
             {participants.length > 0 && (
               <div className="selected-participants">
@@ -655,13 +692,25 @@ export function VideoCreatorPage() {
                         <span className="position-badge">{p.position}</span>
                       </div>
                       <div className="participant-voice">
-                        <label>Voice</label>
+                        <label>Language & Voice</label>
                         <select
-                          value={voices.findIndex(v => v.name === p.voiceSettings.voice?.name)}
-                          onChange={(e) => updateParticipantVoice(p.id, { voice: voices[parseInt(e.target.value)] })}
+                          value={selectedVoiceId || ''}
+                          onChange={(e) => {
+                            const voice = NIGERIAN_VOICE_LIBRARY.find(v => v.id === e.target.value);
+                            if (voice) {
+                              setSelectedVoiceId(voice.id);
+                              updateParticipantVoice(p.id, { 
+                                pitch: voice.defaultPitch, 
+                                rate: voice.defaultRate 
+                              });
+                            }
+                          }}
                         >
-                          {voices.map((v, i) => (
-                            <option key={i} value={i}>{v.name}</option>
+                          <option value="">Select Nigerian Voice</option>
+                          {NIGERIAN_VOICE_LIBRARY.map(v => (
+                            <option key={v.id} value={v.id}>
+                              {v.displayName}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -722,6 +771,7 @@ export function VideoCreatorPage() {
                         <li>✅ Lip sync animation (11 mouth shapes)</li>
                         <li>✅ Eye blinking & movements</li>
                         <li>✅ Multiple emotion presets</li>
+                        <li>✅ Nigerian language support</li>
                       </ul>
                     </div>
                   </div>
@@ -730,21 +780,50 @@ export function VideoCreatorPage() {
             )}
             
             <div className="available-avatars">
-              <h4>Realistic Avatars (with Lip Sync)</h4>
-              <p className="avatars-description">These avatars feature advanced lip sync and realistic animations</p>
-              <div className="avatars-grid realistic-avatars">
-                {REALISTIC_AVATARS.filter(a => !participants.some(p => p.avatar.id === a.id)).map(avatar => (
-                  <div key={avatar.id} className="avatar-card realistic">
+              <div className="avatar-filters">
+                <h4>🎭 Nigerian Avatar Library ({filteredAvatars.length} avatars)</h4>
+                <div className="filter-controls">
+                  <div className="filter-group">
+                    <label>Category:</label>
+                    <select 
+                      value={avatarCategory} 
+                      onChange={(e) => setAvatarCategory(e.target.value)}
+                    >
+                      {AVATAR_CATEGORIES.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="filter-group">
+                    <label>Ethnicity:</label>
+                    <select 
+                      value={avatarEthnicity} 
+                      onChange={(e) => setAvatarEthnicity(e.target.value)}
+                    >
+                      {ETHNICITIES.map(eth => (
+                        <option key={eth.id} value={eth.id}>{eth.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="avatars-grid nigerian-avatars">
+                {filteredAvatars.map(avatar => (
+                  <div key={avatar.id} className="avatar-card detailed">
                     <div 
                       className="avatar-preview" 
                       style={{ background: avatar.skinTone }}
                     >
                       <span>{avatar.name.charAt(0)}</span>
-                      <div className="avatar-badge">HD</div>
+                      <div className="avatar-badge">{avatar.category === 'medical' ? '🏥' : avatar.category === 'traditional' ? '👑' : '✨'}</div>
                     </div>
                     <div className="avatar-info">
                       <h5>{avatar.name}</h5>
-                      <span>{avatar.gender} • {avatar.ageGroup} • {avatar.style || avatar.outfit}</span>
+                      <span className="avatar-profession">{avatar.profession}</span>
+                      <span className="avatar-meta">{avatar.ethnicity} • {avatar.gender} • {avatar.ageGroup}</span>
                     </div>
                     <div className="avatar-actions">
                       <button 
@@ -757,6 +836,7 @@ export function VideoCreatorPage() {
                       <button 
                         className="btn-add" 
                         onClick={() => addParticipant(avatar as any)}
+                        title="Add to video"
                       >
                         <Plus size={16} />
                       </button>
@@ -765,27 +845,11 @@ export function VideoCreatorPage() {
                 ))}
               </div>
               
-              <h4 style={{ marginTop: '2rem' }}>Standard Avatars</h4>
-              <div className="avatars-grid">
-                {AVATARS.filter(a => !participants.some(p => p.avatar.id === a.id)).map(avatar => (
-                  <div
-                    key={avatar.id}
-                    className="avatar-card"
-                    onClick={() => addParticipant(avatar)}
-                  >
-                    <div className="avatar-preview" style={{ background: avatar.skinTone }}>
-                      <span>{avatar.name.charAt(0)}</span>
-                    </div>
-                    <div className="avatar-info">
-                      <h5>{avatar.name}</h5>
-                      <span>{avatar.style} • {avatar.gender}</span>
-                    </div>
-                    <button className="btn-add">
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {filteredAvatars.length === 0 && (
+                <div className="no-avatars-message">
+                  <p>No avatars match your filters. Try adjusting your selection.</p>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1043,33 +1107,46 @@ export function VideoCreatorPage() {
         );
         
       case 'background':
+        const filteredBackgrounds = getBackgroundsByCategory(backgroundCategory);
+        
         return (
           <div className="wizard-step step-background">
             <h2>Choose Background</h2>
             <p className="step-description">Select a background for Scene {currentSceneIndex + 1}</p>
             
             <div className="background-categories">
-              {['all', 'office', 'hospital', 'studio', 'outdoor', 'abstract'].map(category => (
+              {BACKGROUND_CATEGORIES.map(category => (
                 <button
-                  key={category}
-                  className={`category-btn ${category === 'all' ? 'active' : ''}`}
+                  key={category.id}
+                  className={`category-btn ${backgroundCategory === category.id ? 'active' : ''}`}
+                  onClick={() => setBackgroundCategory(category.id)}
                 >
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  <span className="category-icon">{category.icon}</span>
+                  <span className="category-name">{category.name}</span>
+                  <span className="category-count">({category.count})</span>
                 </button>
               ))}
             </div>
             
-            <div className="backgrounds-grid">
-              {BACKGROUNDS.map(bg => (
+            <div className="backgrounds-grid rich-backgrounds">
+              {filteredBackgrounds.map(bg => (
                 <div
                   key={bg.id}
                   className={`background-card ${selectedBackground === bg.id ? 'selected' : ''}`}
                   onClick={() => updateSceneBackground(bg.id)}
-                  style={{ background: bg.value }}
+                  style={{ background: bg.gradient || bg.colors.primary }}
                 >
                   <div className="background-overlay">
-                    <span>{bg.name}</span>
+                    <div className="bg-info">
+                      <span className="bg-name">{bg.name}</span>
+                      <span className="bg-mood">{bg.mood}</span>
+                    </div>
                     {selectedBackground === bg.id && <Check size={24} />}
+                  </div>
+                  <div className="bg-elements">
+                    {bg.elements.slice(0, 3).map((el, i) => (
+                      <span key={i} className="bg-element-tag">{el.type}</span>
+                    ))}
                   </div>
                 </div>
               ))}

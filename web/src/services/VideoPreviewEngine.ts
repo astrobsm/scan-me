@@ -1,10 +1,36 @@
 /**
  * Video Preview Engine - Real-time video preview with canvas rendering
  * Handles avatar animation, lip sync, background rendering, and TTS synchronization
+ * 
+ * ENHANCED with:
+ * - Photorealistic Nigerian avatars from Pexels
+ * - Real Nigerian background images
+ * - Authentic Nigerian accent voices (Igbo, Yoruba, Hausa, Pidgin)
  */
 
 import { Avatar, Background, Participant, DialogueLine, VideoScene, BACKGROUNDS } from './VideoCreator';
 import { BACKGROUND_LIBRARY, Background as LibraryBackground } from './BackgroundLibrary';
+import { 
+  PhotorealisticAvatar, 
+  PHOTOREALISTIC_AVATARS, 
+  avatarLoader, 
+  getAvatarById, 
+  getRandomAvatar 
+} from './PhotorealisticAvatarLibrary';
+import { 
+  NigerianBackground, 
+  NIGERIAN_BACKGROUNDS, 
+  backgroundLoader, 
+  getBackgroundById, 
+  getRecommendedBackground 
+} from './NigerianBackgroundLibrary';
+import { 
+  NigerianVoice, 
+  NIGERIAN_VOICES, 
+  nigerianVoiceEngine, 
+  getRecommendedVoice, 
+  NigerianLanguage 
+} from './NigerianVoiceEngine';
 
 // Lip sync phoneme shapes
 export const PHONEME_SHAPES = {
@@ -71,6 +97,14 @@ export class VideoPreviewEngine {
   private speechSynth: SpeechSynthesis;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   
+  // Photorealistic avatar support
+  private usePhotorealisticAvatars: boolean = true;
+  private loadedAvatarImages: Map<string, HTMLImageElement> = new Map();
+  private loadedBackgroundImages: Map<string, HTMLImageElement> = new Map();
+  private currentNigerianBackground: NigerianBackground | null = null;
+  private currentNigerianVoice: NigerianVoice | null = null;
+  private participantPhotoAvatars: Map<string, PhotorealisticAvatar> = new Map();
+  
   // Animation state
   private frameCount: number = 0;
   private lastFrameTime: number = 0;
@@ -98,17 +132,150 @@ export class VideoPreviewEngine {
 
   constructor() {
     this.speechSynth = window.speechSynthesis;
+    // Set default Nigerian voice
+    this.currentNigerianVoice = getRecommendedVoice('health-talk', 'english-ng');
+    nigerianVoiceEngine.setVoice(this.currentNigerianVoice.id);
   }
 
   // Initialize with canvas element
   initialize(canvas: HTMLCanvasElement): void {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     // Initialize animation states for all participants
     this.participants.forEach(p => {
       this.animationStates.set(p.id, this.createInitialAnimationState());
     });
+    
+    // Preload photorealistic avatars and backgrounds
+    this.preloadPhotorealisticAssets();
+  }
+  
+  // Preload photorealistic assets for faster rendering
+  private async preloadPhotorealisticAssets(): Promise<void> {
+    try {
+      // Preload first 10 avatars
+      const avatarsToLoad = PHOTOREALISTIC_AVATARS.slice(0, 10);
+      for (const avatar of avatarsToLoad) {
+        try {
+          const img = await avatarLoader.loadImage(avatar, 'full');
+          this.loadedAvatarImages.set(avatar.id, img);
+        } catch (e) {
+          console.warn(`Failed to preload avatar ${avatar.id}:`, e);
+        }
+      }
+      
+      // Preload first 5 backgrounds
+      const backgroundsToLoad = NIGERIAN_BACKGROUNDS.slice(0, 5);
+      for (const bg of backgroundsToLoad) {
+        try {
+          const img = await backgroundLoader.loadImage(bg, 'full');
+          this.loadedBackgroundImages.set(bg.id, img);
+        } catch (e) {
+          console.warn(`Failed to preload background ${bg.id}:`, e);
+        }
+      }
+    } catch (error) {
+      console.warn('Error preloading assets:', error);
+    }
+  }
+  
+  // Enable/disable photorealistic avatars
+  setPhotorealisticMode(enabled: boolean): void {
+    this.usePhotorealisticAvatars = enabled;
+  }
+  
+  // Set Nigerian voice
+  setNigerianVoice(voiceId: string): void {
+    const voice = NIGERIAN_VOICES.find(v => v.id === voiceId);
+    if (voice) {
+      this.currentNigerianVoice = voice;
+      nigerianVoiceEngine.setVoice(voiceId);
+    }
+  }
+  
+  // Set Nigerian voice by language
+  setVoiceByLanguage(language: NigerianLanguage, gender?: 'male' | 'female'): void {
+    let voices = NIGERIAN_VOICES.filter(v => v.language === language);
+    if (gender) {
+      voices = voices.filter(v => v.gender === gender);
+    }
+    if (voices.length > 0) {
+      this.currentNigerianVoice = voices[0];
+      nigerianVoiceEngine.setVoice(voices[0].id);
+    }
+  }
+  
+  // Assign photorealistic avatar to participant
+  async assignPhotorealisticAvatar(participantId: string, avatarId?: string): Promise<void> {
+    let photoAvatar: PhotorealisticAvatar;
+    
+    if (avatarId) {
+      photoAvatar = getAvatarById(avatarId) || getRandomAvatar();
+    } else {
+      // Get participant to match avatar characteristics
+      const participant = this.participants.find(p => p.id === participantId);
+      if (participant) {
+        // Match by style/name
+        const style = participant.avatar.style || '';
+        const name = participant.avatar.name || '';
+        const matchingAvatars = PHOTOREALISTIC_AVATARS.filter(a => 
+          a.tags.some(t => style.toLowerCase().includes(t)) ||
+          a.tags.some(t => name.toLowerCase().includes(t)) ||
+          a.profession.toLowerCase().includes(style.toLowerCase())
+        );
+        photoAvatar = matchingAvatars.length > 0 
+          ? matchingAvatars[Math.floor(Math.random() * matchingAvatars.length)]
+          : getRandomAvatar({ gender: participant.avatar.gender === 'male' ? 'male' : 'female' });
+      } else {
+        photoAvatar = getRandomAvatar();
+      }
+    }
+    
+    this.participantPhotoAvatars.set(participantId, photoAvatar);
+    
+    // Preload the image
+    try {
+      const img = await avatarLoader.loadImage(photoAvatar, 'full');
+      this.loadedAvatarImages.set(photoAvatar.id, img);
+    } catch (e) {
+      console.warn(`Failed to load avatar image for ${participantId}:`, e);
+    }
+  }
+  
+  // Set Nigerian background
+  async setNigerianBackground(backgroundId: string): Promise<void> {
+    const bg = getBackgroundById(backgroundId);
+    if (bg) {
+      this.currentNigerianBackground = bg;
+      try {
+        const img = await backgroundLoader.loadImage(bg, 'full');
+        this.loadedBackgroundImages.set(bg.id, img);
+      } catch (e) {
+        console.warn('Failed to load background image:', e);
+      }
+    }
+  }
+  
+  // Get recommended background for video type
+  setBackgroundForVideoType(videoType: string): void {
+    const bg = getRecommendedBackground(videoType);
+    this.setNigerianBackground(bg.id);
+  }
+  
+  // Get available photorealistic avatars
+  getPhotorealisticAvatars(): PhotorealisticAvatar[] {
+    return PHOTOREALISTIC_AVATARS;
+  }
+  
+  // Get available Nigerian backgrounds
+  getNigerianBackgrounds(): NigerianBackground[] {
+    return NIGERIAN_BACKGROUNDS;
+  }
+  
+  // Get available Nigerian voices
+  getNigerianVoices(): NigerianVoice[] {
+    return NIGERIAN_VOICES;
   }
 
   // Create initial animation state
@@ -302,17 +469,53 @@ export class VideoPreviewEngine {
 
   // Draw background with enhanced rendering
   private drawBackground(): void {
-    if (!this.canvas || !this.ctx || !this.currentBackground) {
-      // Default gradient if no background
-      const gradient = this.ctx!.createLinearGradient(0, 0, this.canvas!.width, this.canvas!.height);
-      gradient.addColorStop(0, '#1a1a2e');
-      gradient.addColorStop(1, '#16213e');
-      this.ctx!.fillStyle = gradient;
-      this.ctx!.fillRect(0, 0, this.canvas!.width, this.canvas!.height);
-      return;
-    }
+    if (!this.canvas || !this.ctx) return;
     
     const { width, height } = this.canvas;
+    
+    // Priority 1: Photorealistic Nigerian background image
+    if (this.currentNigerianBackground) {
+      const bgImage = this.loadedBackgroundImages.get(this.currentNigerianBackground.id);
+      if (bgImage) {
+        // Draw image to fill canvas while maintaining aspect ratio
+        const imgAspect = bgImage.width / bgImage.height;
+        const canvasAspect = width / height;
+        
+        let drawWidth, drawHeight, drawX, drawY;
+        
+        if (imgAspect > canvasAspect) {
+          // Image is wider - fit by height
+          drawHeight = height;
+          drawWidth = height * imgAspect;
+          drawX = (width - drawWidth) / 2;
+          drawY = 0;
+        } else {
+          // Image is taller - fit by width
+          drawWidth = width;
+          drawHeight = width / imgAspect;
+          drawX = 0;
+          drawY = (height - drawHeight) / 2;
+        }
+        
+        this.ctx.drawImage(bgImage, drawX, drawY, drawWidth, drawHeight);
+        
+        // Add slight darkening overlay for better avatar visibility
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.fillRect(0, 0, width, height);
+        return;
+      }
+    }
+    
+    // Priority 2: Library background or basic background
+    if (!this.currentBackground) {
+      // Default gradient if no background
+      const gradient = this.ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#16213e');
+      this.ctx.fillStyle = gradient;
+      this.ctx.fillRect(0, 0, width, height);
+      return;
+    }
     
     // Check if it's a library background with gradient property
     if ('gradient' in this.currentBackground && this.currentBackground.gradient) {
@@ -515,6 +718,16 @@ export class VideoPreviewEngine {
     if (!this.canvas || !this.ctx) return;
     
     const { width, height } = this.canvas;
+    
+    // Check if we should use photorealistic avatar
+    if (this.usePhotorealisticAvatars) {
+      const photoAvatar = this.participantPhotoAvatars.get(participant.id);
+      if (photoAvatar) {
+        this.drawPhotorealisticAvatar(participant, photoAvatar, animState, isSpeaking, emotion);
+        return;
+      }
+    }
+    
     const avatar = participant.avatar;
     
     // Calculate position
@@ -552,6 +765,127 @@ export class VideoPreviewEngine {
     this.drawNameTag(centerX, y + avatarHeight * 0.92, avatar.name, isSpeaking);
     
     this.ctx.restore();
+  }
+  
+  // Draw photorealistic avatar with animations
+  private drawPhotorealisticAvatar(
+    participant: Participant,
+    photoAvatar: PhotorealisticAvatar,
+    animState: AvatarAnimationState,
+    isSpeaking: boolean,
+    emotion: string
+  ): void {
+    if (!this.canvas || !this.ctx) return;
+    
+    const { width, height } = this.canvas;
+    const avatarImage = this.loadedAvatarImages.get(photoAvatar.id);
+    
+    if (!avatarImage) {
+      // Fallback to SVG avatar if image not loaded
+      return;
+    }
+    
+    // Calculate position
+    let x: number;
+    const avatarWidth = width * 0.28;
+    const avatarHeight = height * 0.65;
+    
+    switch (participant.position) {
+      case 'left':
+        x = width * 0.12;
+        break;
+      case 'right':
+        x = width * 0.60;
+        break;
+      default:
+        x = width * 0.36;
+    }
+    
+    const y = height * 0.15 + animState.breathingOffset;
+    const centerX = x + avatarWidth / 2;
+    
+    // Apply head tilt and save context
+    this.ctx.save();
+    this.ctx.translate(centerX, y + avatarHeight * 0.3);
+    this.ctx.rotate(animState.headTilt * 0.5); // Subtle tilt for photos
+    this.ctx.translate(-centerX, -(y + avatarHeight * 0.3));
+    
+    // Calculate image dimensions to maintain aspect ratio
+    const imgAspect = avatarImage.width / avatarImage.height;
+    let drawWidth = avatarWidth;
+    let drawHeight = avatarWidth / imgAspect;
+    
+    if (drawHeight > avatarHeight) {
+      drawHeight = avatarHeight;
+      drawWidth = avatarHeight * imgAspect;
+    }
+    
+    const drawX = x + (avatarWidth - drawWidth) / 2;
+    const drawY = y + (avatarHeight - drawHeight) / 2;
+    
+    // Add glow effect when speaking
+    if (isSpeaking) {
+      this.ctx.shadowColor = '#667eea';
+      this.ctx.shadowBlur = 25;
+      this.ctx.shadowOffsetX = 0;
+      this.ctx.shadowOffsetY = 0;
+    }
+    
+    // Draw rounded frame
+    this.ctx.beginPath();
+    this.ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 15);
+    this.ctx.clip();
+    
+    // Draw the avatar image
+    this.ctx.drawImage(avatarImage, drawX, drawY, drawWidth, drawHeight);
+    
+    // Reset shadow
+    this.ctx.shadowBlur = 0;
+    
+    // Draw lip sync overlay (semi-transparent mouth animation)
+    if (isSpeaking && animState.mouthOpenness > 0.1) {
+      const lipSync = photoAvatar.lipSyncPoints;
+      const faceRect = photoAvatar.faceRect;
+      
+      // Calculate mouth position in canvas coordinates
+      const mouthCenterX = drawX + drawWidth * lipSync.mouthTop.x;
+      const mouthCenterY = drawY + drawHeight * lipSync.mouthTop.y;
+      const mouthWidth = drawWidth * 0.08;
+      const mouthHeight = animState.mouthOpenness * drawHeight * 0.03;
+      
+      // Subtle mouth animation overlay
+      this.ctx.fillStyle = `rgba(0, 0, 0, ${animState.mouthOpenness * 0.3})`;
+      this.ctx.beginPath();
+      this.ctx.ellipse(mouthCenterX, mouthCenterY, mouthWidth, mouthHeight, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    
+    // Draw eye blink overlay
+    if (animState.eyeBlinkProgress > 0.3) {
+      const lipSync = photoAvatar.lipSyncPoints;
+      const leftEyeX = drawX + drawWidth * lipSync.leftEye.x;
+      const rightEyeX = drawX + drawWidth * lipSync.rightEye.x;
+      const eyeY = drawY + drawHeight * lipSync.leftEye.y;
+      const eyeWidth = drawWidth * 0.04;
+      const eyeHeight = drawHeight * 0.015 * animState.eyeBlinkProgress;
+      
+      // Skin-colored overlay for blink effect
+      this.ctx.fillStyle = 'rgba(139, 90, 43, 0.8)'; // Approximate skin color
+      this.ctx.fillRect(leftEyeX - eyeWidth, eyeY - eyeHeight, eyeWidth * 2, eyeHeight * 2);
+      this.ctx.fillRect(rightEyeX - eyeWidth, eyeY - eyeHeight, eyeWidth * 2, eyeHeight * 2);
+    }
+    
+    this.ctx.restore();
+    
+    // Draw decorative frame border
+    this.ctx.strokeStyle = isSpeaking ? '#667eea' : 'rgba(255, 255, 255, 0.3)';
+    this.ctx.lineWidth = isSpeaking ? 4 : 2;
+    this.ctx.beginPath();
+    this.ctx.roundRect(drawX, drawY, drawWidth, drawHeight, 15);
+    this.ctx.stroke();
+    
+    // Draw name tag
+    this.drawNameTag(centerX, y + avatarHeight * 0.92, photoAvatar.name, isSpeaking);
   }
 
   // Draw avatar body

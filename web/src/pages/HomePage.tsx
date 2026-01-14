@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Camera, Upload, Zap, Shield, FileText, Globe, Languages, Volume2 } from 'lucide-react';
+import { Camera, Upload, Zap, Shield, FileText, Globe, Languages, Volume2, AudioLines, Video } from 'lucide-react';
 import './HomePage.css';
 
 export function HomePage() {
@@ -64,6 +64,14 @@ export function HomePage() {
             <p>Listen to translated text in native Nigerian language voices.</p>
           </div>
 
+          <Link to="/voice-clone" className="feature-card feature-card-link">
+            <div className="feature-icon voice-clone">
+              <AudioLines size={32} />
+            </div>
+            <h3>Voice Cloning</h3>
+            <p>Clone your voice for personalized text-to-speech with 100% accuracy.</p>
+          </Link>
+
           <div className="feature-card">
             <div className="feature-icon">
               <Shield size={32} />
@@ -79,6 +87,14 @@ export function HomePage() {
             <h3>Multi-Language</h3>
             <p>Support for multiple languages and handwriting styles.</p>
           </div>
+
+          <Link to="/video-creator" className="feature-card feature-card-link">
+            <div className="feature-icon video-creator">
+              <Video size={32} />
+            </div>
+            <h3>Video Creator</h3>
+            <p>Create HD advert and health talk videos with AI avatars and conversations.</p>
+          </Link>
         </div>
       </section>
 

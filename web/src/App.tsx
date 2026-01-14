@@ -9,6 +9,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TextToSpeechPage } from './pages/TextToSpeechPage';
 import { SpeechToTextPage } from './pages/SpeechToTextPage';
 import { TranslationPage } from './pages/TranslationPage';
+import { VoiceClonePage } from './pages/VoiceClonePage';
+import { VideoCreatorPage } from './pages/VideoCreatorPage';
 
 function App() {
   return (
@@ -23,6 +25,8 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/text-to-speech" element={<TextToSpeechPage />} />
           <Route path="/speech-to-text" element={<SpeechToTextPage />} />
+          <Route path="/voice-clone" element={<VoiceClonePage />} />
+          <Route path="/video-creator" element={<VideoCreatorPage />} />
         </Routes>
       </main>
       <InstallPrompt />

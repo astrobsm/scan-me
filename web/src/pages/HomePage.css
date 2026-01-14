@@ -86,6 +86,27 @@
   color: #059669;
 }
 
+.feature-icon.voice-clone {
+  background: #fce7f3;
+  color: #db2777;
+}
+
+.feature-icon.video-creator {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.feature-card-link {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-card-link:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
 .feature-card h3 {
   font-size: 1.125rem;
   margin-bottom: 0.5rem;

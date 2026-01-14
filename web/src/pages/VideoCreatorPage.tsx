@@ -24,7 +24,11 @@ import {
   PlusCircle,
   MinusCircle,
   Move,
-  Sparkles
+  Sparkles,
+  Upload,
+  FileText,
+  Copy,
+  Eye
 } from 'lucide-react';
 import {
   videoCreator,
@@ -39,6 +43,8 @@ import {
   VIDEO_TEMPLATES,
   ExportProgress
 } from '../services/VideoCreator';
+import { REALISTIC_AVATARS, RealisticAvatar, EMOTION_PRESETS, AvatarRenderer } from '../services/RealisticAvatar';
+import { bulkDialogueService, BulkDialogueEntry, DIALOGUE_TEMPLATES, DialogueTemplate } from '../services/BulkDialogueService';
 import './VideoCreatorPage.css';
 
 type WizardStep = 'type' | 'topic' | 'participants' | 'dialogue' | 'background' | 'preview' | 'export';
@@ -68,8 +74,19 @@ export function VideoCreatorPage() {
   const [previewPlaying, setPreviewPlaying] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
+  // Bulk upload state
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkUploadContent, setBulkUploadContent] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [uploadFormat, setUploadFormat] = useState<'csv' | 'json' | 'txt'>('csv');
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
+  const [previewAvatarId, setPreviewAvatarId] = useState<string>('');
+  
   // Refs
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarPreviewCanvasRef = useRef<HTMLCanvasElement>(null);
   
   // Load projects and voices on mount
   useEffect(() => {
@@ -263,6 +280,158 @@ export function VideoCreatorPage() {
     updatedScenes[currentSceneIndex].dialogues = newDialogues;
     setScenes(updatedScenes);
     setSuccess('AI suggestions generated! Feel free to edit them.');
+  };
+  
+  // Handle bulk file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      processBulkDialogue(content, file.name);
+    };
+    reader.readAsText(file);
+  };
+  
+  // Process bulk dialogue content
+  const processBulkDialogue = (content: string, filename: string = 'dialogue.txt') => {
+    const result = bulkDialogueService.parseFile(content, filename);
+    
+    if (!result.success) {
+      setError(result.errors.join(', '));
+      return;
+    }
+    
+    if (result.warnings.length > 0) {
+      setSuccess(`Imported ${result.entries.length} lines with ${result.warnings.length} warnings`);
+    } else {
+      setSuccess(`Successfully imported ${result.entries.length} dialogue lines!`);
+    }
+    
+    // Convert bulk entries to dialogue lines
+    const newDialogues: DialogueLine[] = result.entries.map((entry: BulkDialogueEntry) => {
+      let participantId = participants[0]?.id || '';
+      
+      if (entry.participantIndex !== undefined && participants[entry.participantIndex]) {
+        participantId = participants[entry.participantIndex].id;
+      } else if (entry.participantName) {
+        const found = participants.find(p => 
+          p.name.toLowerCase().includes(entry.participantName!.toLowerCase())
+        );
+        if (found) participantId = found.id;
+      }
+      
+      return {
+        id: videoCreator.generateId(),
+        participantId,
+        text: entry.text,
+        emotion: (entry.emotion as DialogueLine['emotion']) || 'neutral',
+        pauseAfter: entry.pauseAfter || 500
+      };
+    });
+    
+    const updatedScenes = [...scenes];
+    updatedScenes[currentSceneIndex].dialogues = [
+      ...updatedScenes[currentSceneIndex].dialogues,
+      ...newDialogues
+    ];
+    setScenes(updatedScenes);
+    setShowBulkUpload(false);
+    setBulkUploadContent('');
+  };
+  
+  // Load dialogue template
+  const loadTemplate = (template: DialogueTemplate) => {
+    const newDialogues: DialogueLine[] = template.dialogues.map((entry: BulkDialogueEntry) => {
+      const participantIndex = entry.participantIndex ?? 0;
+      const participantId = participants[participantIndex]?.id || participants[0]?.id || '';
+      
+      return {
+        id: videoCreator.generateId(),
+        participantId,
+        text: entry.text,
+        emotion: (entry.emotion as DialogueLine['emotion']) || 'neutral',
+        pauseAfter: entry.pauseAfter || 500
+      };
+    });
+    
+    const updatedScenes = [...scenes];
+    updatedScenes[currentSceneIndex].dialogues = newDialogues;
+    setScenes(updatedScenes);
+    setShowTemplates(false);
+    setSuccess(`Template "${template.name}" loaded successfully!`);
+  };
+  
+  // Download sample format
+  const downloadSampleFormat = (format: 'csv' | 'json' | 'txt') => {
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+    
+    switch (format) {
+      case 'csv':
+        content = bulkDialogueService.generateSampleCSV();
+        filename = 'dialogue-sample.csv';
+        mimeType = 'text/csv';
+        break;
+      case 'json':
+        content = bulkDialogueService.generateSampleJSON();
+        filename = 'dialogue-sample.json';
+        mimeType = 'application/json';
+        break;
+      case 'txt':
+        content = bulkDialogueService.generateSampleTXT();
+        filename = 'dialogue-sample.txt';
+        mimeType = 'text/plain';
+        break;
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  // Preview avatar with animation
+  const previewAvatar = (avatarId: string) => {
+    setPreviewAvatarId(avatarId);
+    setShowAvatarPreview(true);
+    
+    // Render avatar preview after a short delay
+    setTimeout(() => {
+      const canvas = avatarPreviewCanvasRef.current;
+      if (!canvas) return;
+      
+      const avatar = REALISTIC_AVATARS.find(a => a.id === avatarId);
+      if (!avatar) return;
+      
+      const renderer = new AvatarRenderer(canvas);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      // Clear canvas
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Render avatar
+      renderer.renderAvatar(
+        avatar,
+        canvas.width * 0.25,
+        canvas.height * 0.05,
+        canvas.width * 0.5,
+        canvas.height * 0.9,
+        EMOTION_PRESETS.happy,
+        'smile',
+        0
+      );
+    }, 100);
   };
   
   // Preview dialogue
@@ -470,7 +639,7 @@ export function VideoCreatorPage() {
         return (
           <div className="wizard-step step-participants">
             <h2>Select Your Avatars</h2>
-            <p className="step-description">Choose the characters who will appear in your video</p>
+            <p className="step-description">Choose characters with realistic animations and lip sync</p>
             
             {participants.length > 0 && (
               <div className="selected-participants">
@@ -529,8 +698,74 @@ export function VideoCreatorPage() {
               </div>
             )}
             
+            {/* Avatar Preview Modal */}
+            {showAvatarPreview && (
+              <div className="modal-overlay" onClick={() => setShowAvatarPreview(false)}>
+                <div className="modal avatar-preview-modal" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3><Eye size={24} /> Avatar Preview</h3>
+                    <button className="btn-close" onClick={() => setShowAvatarPreview(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <canvas 
+                      ref={avatarPreviewCanvasRef} 
+                      width={400} 
+                      height={500}
+                      className="avatar-preview-canvas"
+                    />
+                    <div className="preview-emotions">
+                      <p>This avatar features:</p>
+                      <ul>
+                        <li>✅ Realistic facial expressions</li>
+                        <li>✅ Lip sync animation (11 mouth shapes)</li>
+                        <li>✅ Eye blinking & movements</li>
+                        <li>✅ Multiple emotion presets</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="available-avatars">
-              <h4>Available Avatars</h4>
+              <h4>Realistic Avatars (with Lip Sync)</h4>
+              <p className="avatars-description">These avatars feature advanced lip sync and realistic animations</p>
+              <div className="avatars-grid realistic-avatars">
+                {REALISTIC_AVATARS.filter(a => !participants.some(p => p.avatar.id === a.id)).map(avatar => (
+                  <div key={avatar.id} className="avatar-card realistic">
+                    <div 
+                      className="avatar-preview" 
+                      style={{ background: avatar.skinTone }}
+                    >
+                      <span>{avatar.name.charAt(0)}</span>
+                      <div className="avatar-badge">HD</div>
+                    </div>
+                    <div className="avatar-info">
+                      <h5>{avatar.name}</h5>
+                      <span>{avatar.gender} • {avatar.ageGroup} • {avatar.style || avatar.outfit}</span>
+                    </div>
+                    <div className="avatar-actions">
+                      <button 
+                        className="btn-preview" 
+                        onClick={(e) => { e.stopPropagation(); previewAvatar(avatar.id); }}
+                        title="Preview avatar"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        className="btn-add" 
+                        onClick={() => addParticipant(avatar as any)}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <h4 style={{ marginTop: '2rem' }}>Standard Avatars</h4>
               <div className="avatars-grid">
                 {AVATARS.filter(a => !participants.some(p => p.avatar.id === a.id)).map(avatar => (
                   <div
@@ -560,11 +795,148 @@ export function VideoCreatorPage() {
           <div className="wizard-step step-dialogue">
             <div className="dialogue-header">
               <h2>Create Your Conversation</h2>
-              <button className="btn btn-secondary" onClick={generateDialogueSuggestion}>
-                <Sparkles size={18} />
-                AI Suggestions
-              </button>
+              <div className="dialogue-actions-header">
+                <button className="btn btn-primary" onClick={() => setShowBulkUpload(true)}>
+                  <Upload size={18} />
+                  Bulk Upload
+                </button>
+                <button className="btn btn-secondary" onClick={() => setShowTemplates(true)}>
+                  <FileText size={18} />
+                  Templates
+                </button>
+                <button className="btn btn-secondary" onClick={generateDialogueSuggestion}>
+                  <Sparkles size={18} />
+                  AI Suggestions
+                </button>
+              </div>
             </div>
+            
+            {/* Bulk Upload Modal */}
+            {showBulkUpload && (
+              <div className="modal-overlay" onClick={() => setShowBulkUpload(false)}>
+                <div className="modal bulk-upload-modal" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3><Upload size={24} /> Bulk Dialogue Upload</h3>
+                    <button className="btn-close" onClick={() => setShowBulkUpload(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="modal-body">
+                    <div className="upload-format-selector">
+                      <label>Format:</label>
+                      <div className="format-buttons">
+                        {(['csv', 'json', 'txt'] as const).map(format => (
+                          <button
+                            key={format}
+                            className={`format-btn ${uploadFormat === format ? 'active' : ''}`}
+                            onClick={() => setUploadFormat(format)}
+                          >
+                            {format.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                      <button className="btn-download-sample" onClick={() => downloadSampleFormat(uploadFormat)}>
+                        <Download size={16} />
+                        Download Sample
+                      </button>
+                    </div>
+                    
+                    <div className="file-upload-area">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept=".csv,.json,.txt"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <div 
+                        className="drop-zone"
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('dragover'); }}
+                        onDragLeave={(e) => e.currentTarget.classList.remove('dragover')}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('dragover');
+                          const file = e.dataTransfer.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => processBulkDialogue(ev.target?.result as string, file.name);
+                            reader.readAsText(file);
+                          }
+                        }}
+                      >
+                        <Upload size={40} />
+                        <p>Drag & drop a file here or click to browse</p>
+                        <span>Supports CSV, JSON, and TXT formats</span>
+                      </div>
+                    </div>
+                    
+                    <div className="paste-area">
+                      <label>Or paste content directly:</label>
+                      <textarea
+                        value={bulkUploadContent}
+                        onChange={(e) => setBulkUploadContent(e.target.value)}
+                        placeholder={uploadFormat === 'csv' ? 
+                          'participant,text,emotion\nDoctor,Hello! Welcome to our health talk.,happy\nNurse,Let me explain the symptoms.,serious' :
+                          uploadFormat === 'json' ?
+                          '[{"participant": 0, "text": "Hello!", "emotion": "happy"}]' :
+                          'Doctor: Hello! Welcome to our health talk.\nNurse: Let me explain the symptoms.'}
+                        rows={6}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="modal-footer">
+                    <button className="btn btn-secondary" onClick={() => setShowBulkUpload(false)}>
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => processBulkDialogue(bulkUploadContent, `dialogue.${uploadFormat}`)}
+                      disabled={!bulkUploadContent.trim()}
+                    >
+                      <Upload size={16} />
+                      Import Dialogue
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Templates Modal */}
+            {showTemplates && (
+              <div className="modal-overlay" onClick={() => setShowTemplates(false)}>
+                <div className="modal templates-modal" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h3><FileText size={24} /> Dialogue Templates</h3>
+                    <button className="btn-close" onClick={() => setShowTemplates(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="modal-body">
+                    <div className="templates-grid">
+                      {DIALOGUE_TEMPLATES.map(template => (
+                        <div key={template.id} className="template-card">
+                          <div className="template-header">
+                            <h4>{template.name}</h4>
+                            <span className="template-category">{template.category}</span>
+                          </div>
+                          <p>{template.description}</p>
+                          <div className="template-preview">
+                            <span>{template.dialogues.length} lines</span>
+                          </div>
+                          <button className="btn btn-primary" onClick={() => loadTemplate(template)}>
+                            Use Template
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="scenes-tabs">
               {scenes.map((scene, i) => (

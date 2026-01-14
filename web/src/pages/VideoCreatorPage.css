@@ -1109,3 +1109,402 @@
     flex-direction: column;
   }
 }
+/* Bulk Upload & Templates Styles */
+.dialogue-actions-header {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+.modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.modal-header h3 svg {
+  color: var(--primary);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-close:hover {
+  background: var(--border);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+
+/* Bulk Upload Specific */
+.upload-format-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.upload-format-selector label {
+  font-weight: 600;
+}
+
+.format-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.format-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border);
+  background: var(--background);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.format-btn:hover {
+  border-color: var(--primary);
+}
+
+.format-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-download-sample {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-secondary);
+  margin-left: auto;
+  transition: all 0.2s;
+}
+
+.btn-download-sample:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.file-upload-area {
+  margin-bottom: 1.5rem;
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--background);
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.drop-zone svg {
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.drop-zone p {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.drop-zone span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.paste-area label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.paste-area textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 0.875rem;
+  resize: vertical;
+  background: var(--background);
+}
+
+.paste-area textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Templates Modal */
+.templates-modal {
+  max-width: 900px;
+}
+
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.template-card {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: all 0.2s;
+}
+
+.template-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.template-header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.template-category {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.template-card p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.template-preview {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.template-card .btn {
+  width: 100%;
+}
+
+/* Realistic Avatars */
+.avatars-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.avatars-grid.realistic-avatars .avatar-card {
+  border: 2px solid var(--primary);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(37, 99, 235, 0.05) 100%);
+}
+
+.avatar-card.realistic .avatar-preview {
+  position: relative;
+}
+
+.avatar-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-preview {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-preview:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Avatar Preview Modal */
+.avatar-preview-modal .modal-body {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.avatar-preview-canvas {
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.preview-emotions {
+  flex: 1;
+}
+
+.preview-emotions p {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.preview-emotions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.preview-emotions li {
+  padding: 0.5rem 0;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.preview-emotions li:last-child {
+  border-bottom: none;
+}
+
+/* Enhanced Dialogue Step */
+.dialogue-header {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .dialogue-actions-header {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  
+  .dialogue-actions-header .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .avatar-preview-modal .modal-body {
+    flex-direction: column;
+  }
+  
+  .avatar-preview-canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .templates-grid {
+    grid-template-columns: 1fr;
+  }
+}

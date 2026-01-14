@@ -41,8 +41,10 @@ import {
   AVATARS,
   BACKGROUNDS,
   VIDEO_TEMPLATES,
+  VIDEO_CATEGORIES,
   ExportProgress
 } from '../services/VideoCreator';
+import { videoPreviewEngine, PreviewState } from '../services/VideoPreviewEngine';
 import { REALISTIC_AVATARS, RealisticAvatar, EMOTION_PRESETS, AvatarRenderer } from '../services/RealisticAvatar';
 import { bulkDialogueService, BulkDialogueEntry, DIALOGUE_TEMPLATES, DialogueTemplate } from '../services/BulkDialogueService';
 import { 
@@ -72,6 +74,8 @@ import './VideoCreatorPage.css';
 
 type WizardStep = 'type' | 'topic' | 'participants' | 'dialogue' | 'background' | 'preview' | 'export';
 
+type VideoType = 'advert' | 'health-talk' | 'educational' | 'interview' | 'news' | 'podcast' | 'tutorial' | 'testimonial' | 'documentary' | 'story' | 'product-demo' | 'announcement' | 'debate' | 'explainer' | 'comedy-skit' | 'motivational' | 'custom';
+
 export function VideoCreatorPage() {
   // Project state
   const [projects, setProjects] = useState<VideoProject[]>([]);
@@ -80,7 +84,8 @@ export function VideoCreatorPage() {
   const [wizardStep, setWizardStep] = useState<WizardStep>('type');
   
   // Form state
-  const [projectType, setProjectType] = useState<'advert' | 'health-talk' | 'educational' | 'custom'>('health-talk');
+  const [projectType, setProjectType] = useState<VideoType>('health-talk');
+  const [videoTypeCategory, setVideoTypeCategory] = useState<string>('all');
   const [topic, setTopic] = useState('');
   const [description, setDescription] = useState('');
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -95,6 +100,7 @@ export function VideoCreatorPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [previewState, setPreviewState] = useState<PreviewState | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   // Bulk upload state
@@ -574,6 +580,63 @@ export function VideoCreatorPage() {
     }
   };
   
+  // Initialize preview engine when entering preview step
+  useEffect(() => {
+    if (wizardStep === 'preview' && previewCanvasRef.current) {
+      videoPreviewEngine.initialize(previewCanvasRef.current);
+      videoPreviewEngine.setSceneData(participants, scenes);
+      if (scenes[currentSceneIndex]?.backgroundId) {
+        videoPreviewEngine.setBackground(scenes[currentSceneIndex].backgroundId);
+      }
+      // Render initial static preview
+      renderStaticPreview();
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (previewPlaying) {
+        videoPreviewEngine.stopPreview();
+      }
+    };
+  }, [wizardStep]);
+  
+  // Handle preview toggle
+  const handlePreviewToggle = async () => {
+    if (previewPlaying) {
+      videoPreviewEngine.stopPreview();
+      setPreviewPlaying(false);
+      setPreviewState(null);
+    } else {
+      if (!previewCanvasRef.current) return;
+      
+      // Ensure engine is initialized
+      videoPreviewEngine.initialize(previewCanvasRef.current);
+      videoPreviewEngine.setSceneData(participants, scenes);
+      
+      setPreviewPlaying(true);
+      
+      await videoPreviewEngine.startPreview(
+        (state) => setPreviewState(state),
+        () => {
+          setPreviewPlaying(false);
+          setPreviewState(null);
+          setSuccess('Preview completed!');
+        }
+      );
+    }
+  };
+  
+  // Render static preview frame
+  const renderStaticPreview = useCallback(() => {
+    if (!previewCanvasRef.current) return;
+    
+    videoPreviewEngine.initialize(previewCanvasRef.current);
+    videoPreviewEngine.setSceneData(participants, scenes);
+    
+    const backgroundId = scenes[currentSceneIndex]?.backgroundId || 'bg-1';
+    videoPreviewEngine.renderStaticPreview(participants, backgroundId);
+  }, [participants, scenes, currentSceneIndex]);
+  
   // Navigate wizard
   const nextStep = () => {
     const steps: WizardStep[] = ['type', 'topic', 'participants', 'dialogue', 'background', 'preview', 'export'];
@@ -595,31 +658,66 @@ export function VideoCreatorPage() {
   const renderStepContent = () => {
     switch (wizardStep) {
       case 'type':
+        const filteredVideoTypes = Object.entries(VIDEO_TEMPLATES).filter(([key, template]) => {
+          if (videoTypeCategory === 'all') return true;
+          return (template as any).category === videoTypeCategory;
+        });
+        
         return (
           <div className="wizard-step step-type">
-            <h2>What type of video do you want to create?</h2>
-            <div className="video-types">
-              {Object.entries(VIDEO_TEMPLATES).map(([key, template]) => (
+            <h2>🎬 What type of video do you want to create?</h2>
+            <p className="step-description">Choose from our extensive library of video formats</p>
+            
+            <div className="video-type-categories">
+              {VIDEO_CATEGORIES.map(cat => (
+                <button
+                  key={cat.id}
+                  className={`category-pill ${videoTypeCategory === cat.id ? 'active' : ''}`}
+                  onClick={() => setVideoTypeCategory(cat.id)}
+                >
+                  <span className="cat-icon">{cat.icon}</span>
+                  <span className="cat-name">{cat.name}</span>
+                </button>
+              ))}
+            </div>
+            
+            <div className="video-types extended">
+              {filteredVideoTypes.map(([key, template]) => (
                 <div
                   key={key}
                   className={`type-card ${projectType === key ? 'selected' : ''}`}
-                  onClick={() => setProjectType(key as typeof projectType)}
+                  onClick={() => setProjectType(key as VideoType)}
                 >
-                  <div className="type-icon">
-                    {key === 'health-talk' && <Users size={32} />}
-                    {key === 'advert' && <Film size={32} />}
-                    {key === 'educational' && <Video size={32} />}
-                    {key === 'custom' && <Settings size={32} />}
+                  <div className="type-icon-large">
+                    {(template as any).icon || '🎬'}
                   </div>
-                  <h3>{template.name}</h3>
-                  <p>{template.description}</p>
-                  <div className="type-meta">
-                    <span><Users size={14} /> {template.suggestedParticipants} participants</span>
-                    <span>⏱️ {template.suggestedDuration}</span>
+                  <div className="type-content">
+                    <h3>{(template as any).name}</h3>
+                    <p>{(template as any).description}</p>
+                    <div className="type-meta">
+                      <span><Users size={14} /> {(template as any).suggestedParticipants} participants</span>
+                      <span>⏱️ {(template as any).suggestedDuration}</span>
+                    </div>
                   </div>
+                  {projectType === key && (
+                    <div className="selected-badge">
+                      <Check size={16} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+            
+            {VIDEO_TEMPLATES[projectType]?.structure?.length > 0 && (
+              <div className="selected-type-preview">
+                <h4>📝 Suggested Structure for {VIDEO_TEMPLATES[projectType].name}</h4>
+                <ol className="structure-list">
+                  {VIDEO_TEMPLATES[projectType].structure.map((item: string, i: number) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         );
         
@@ -1175,9 +1273,10 @@ export function VideoCreatorPage() {
       case 'preview':
         return (
           <div className="wizard-step step-preview">
-            <h2>Preview Your Video</h2>
+            <h2>🎬 Preview Your Video</h2>
+            <p className="step-description">Watch your video with animated avatars, lip sync, and voice narration</p>
             
-            <div className="preview-container">
+            <div className="preview-container enhanced">
               <canvas
                 ref={previewCanvasRef}
                 width={1280}
@@ -1185,23 +1284,58 @@ export function VideoCreatorPage() {
                 className="preview-canvas"
               />
               
-              <div className="preview-controls">
+              <div className="preview-overlay">
+                {previewPlaying && previewState && (
+                  <div className="now-playing">
+                    <span className="speaker-indicator">
+                      🎤 {participants.find(p => p.id === previewState.currentSpeaker)?.name || 'Starting...'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="preview-controls enhanced">
                 <button
-                  className="btn btn-primary"
-                  onClick={() => setPreviewPlaying(!previewPlaying)}
+                  className={`btn btn-primary btn-lg ${previewPlaying ? 'playing' : ''}`}
+                  onClick={handlePreviewToggle}
                 >
-                  {previewPlaying ? <Pause size={20} /> : <Play size={20} />}
-                  {previewPlaying ? 'Pause' : 'Play Preview'}
+                  {previewPlaying ? <Pause size={24} /> : <Play size={24} />}
+                  {previewPlaying ? 'Stop Preview' : 'Play Full Preview'}
+                </button>
+                
+                <button
+                  className="btn btn-secondary"
+                  onClick={renderStaticPreview}
+                >
+                  <Eye size={20} />
+                  Refresh Preview
                 </button>
               </div>
+              
+              {previewPlaying && previewState && (
+                <div className="preview-progress">
+                  <div className="progress-info">
+                    <span>Scene {previewState.currentSceneIndex + 1} of {scenes.length}</span>
+                    <span>Line {previewState.currentDialogueIndex + 1} of {scenes[previewState.currentSceneIndex]?.dialogues.length || 0}</span>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ width: `${previewState.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
-            <div className="preview-summary">
-              <h4>Video Summary</h4>
+            <div className="preview-summary enhanced">
+              <h4>📋 Video Summary</h4>
               <div className="summary-grid">
                 <div className="summary-item">
-                  <span className="label">Type</span>
-                  <span className="value">{VIDEO_TEMPLATES[projectType].name}</span>
+                  <span className="label">Video Type</span>
+                  <span className="value">
+                    {VIDEO_TEMPLATES[projectType]?.icon} {VIDEO_TEMPLATES[projectType]?.name}
+                  </span>
                 </div>
                 <div className="summary-item">
                   <span className="label">Topic</span>
@@ -1209,7 +1343,7 @@ export function VideoCreatorPage() {
                 </div>
                 <div className="summary-item">
                   <span className="label">Participants</span>
-                  <span className="value">{participants.length}</span>
+                  <span className="value">{participants.length} avatars</span>
                 </div>
                 <div className="summary-item">
                   <span className="label">Scenes</span>
@@ -1223,6 +1357,18 @@ export function VideoCreatorPage() {
                   <span className="label">Resolution</span>
                   <span className="value">{resolution}</span>
                 </div>
+              </div>
+              
+              <div className="preview-features">
+                <h5>✨ Preview Features</h5>
+                <ul>
+                  <li>✅ Real-time avatar animation</li>
+                  <li>✅ Lip sync with speech</li>
+                  <li>✅ Eye blink & movement</li>
+                  <li>✅ Background rendering</li>
+                  <li>✅ Speech bubbles</li>
+                  <li>✅ Natural TTS voices</li>
+                </ul>
               </div>
             </div>
           </div>

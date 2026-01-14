@@ -45,7 +45,7 @@ export interface VideoScene {
 export interface VideoProject {
   id: string;
   title: string;
-  type: 'advert' | 'health-talk' | 'educational' | 'custom';
+  type: 'advert' | 'health-talk' | 'educational' | 'interview' | 'news' | 'podcast' | 'tutorial' | 'testimonial' | 'documentary' | 'story' | 'product-demo' | 'announcement' | 'debate' | 'explainer' | 'comedy-skit' | 'motivational' | 'custom';
   topic: string;
   description: string;
   participants: Participant[];
@@ -250,11 +250,13 @@ export const BACKGROUNDS: Background[] = [
   }
 ];
 
-// Video templates
+// Video templates - Comprehensive video type options
 export const VIDEO_TEMPLATES = {
   'health-talk': {
     name: 'Health Talk',
     description: 'Educational health discussion format',
+    icon: '🏥',
+    category: 'educational',
     suggestedParticipants: 2,
     suggestedDuration: '3-5 minutes',
     structure: [
@@ -268,6 +270,8 @@ export const VIDEO_TEMPLATES = {
   'advert': {
     name: 'Advertisement',
     description: 'Promotional content format',
+    icon: '📢',
+    category: 'commercial',
     suggestedParticipants: 1,
     suggestedDuration: '30-60 seconds',
     structure: [
@@ -281,6 +285,8 @@ export const VIDEO_TEMPLATES = {
   'educational': {
     name: 'Educational',
     description: 'Learning and tutorial format',
+    icon: '📚',
+    category: 'educational',
     suggestedParticipants: 1,
     suggestedDuration: '5-10 minutes',
     structure: [
@@ -291,14 +297,223 @@ export const VIDEO_TEMPLATES = {
       'Conclusion'
     ]
   },
+  'interview': {
+    name: 'Interview',
+    description: 'One-on-one or panel interview format',
+    icon: '🎤',
+    category: 'talk-show',
+    suggestedParticipants: 2,
+    suggestedDuration: '5-15 minutes',
+    structure: [
+      'Introduction of Guest',
+      'Opening Question',
+      'Main Discussion Points',
+      'Follow-up Questions',
+      'Closing Remarks'
+    ]
+  },
+  'news': {
+    name: 'News Report',
+    description: 'Professional news broadcast format',
+    icon: '📰',
+    category: 'broadcast',
+    suggestedParticipants: 1,
+    suggestedDuration: '2-5 minutes',
+    structure: [
+      'Breaking News Introduction',
+      'Story Details',
+      'Expert Commentary',
+      'Impact Analysis',
+      'Wrap-up'
+    ]
+  },
+  'podcast': {
+    name: 'Podcast Style',
+    description: 'Casual conversation podcast format',
+    icon: '🎙️',
+    category: 'talk-show',
+    suggestedParticipants: 2,
+    suggestedDuration: '10-30 minutes',
+    structure: [
+      'Welcome & Topic Intro',
+      'Main Discussion',
+      'Listener Questions',
+      'Hot Takes',
+      'Outro & Next Episode Preview'
+    ]
+  },
+  'tutorial': {
+    name: 'Step-by-Step Tutorial',
+    description: 'Detailed how-to instructional video',
+    icon: '📝',
+    category: 'educational',
+    suggestedParticipants: 1,
+    suggestedDuration: '5-15 minutes',
+    structure: [
+      'What You Will Learn',
+      'Prerequisites & Materials',
+      'Step 1, 2, 3...',
+      'Tips & Tricks',
+      'Summary & Resources'
+    ]
+  },
+  'testimonial': {
+    name: 'Testimonial',
+    description: 'Customer or user testimonial format',
+    icon: '⭐',
+    category: 'commercial',
+    suggestedParticipants: 1,
+    suggestedDuration: '1-3 minutes',
+    structure: [
+      'Personal Introduction',
+      'The Problem They Faced',
+      'Discovery of Solution',
+      'Results & Benefits',
+      'Recommendation'
+    ]
+  },
+  'documentary': {
+    name: 'Documentary',
+    description: 'In-depth documentary style narration',
+    icon: '🎬',
+    category: 'narrative',
+    suggestedParticipants: 1,
+    suggestedDuration: '10-30 minutes',
+    structure: [
+      'Opening Hook',
+      'Background & Context',
+      'The Journey',
+      'Key Revelations',
+      'Conclusion & Reflection'
+    ]
+  },
+  'story': {
+    name: 'Storytelling',
+    description: 'Engaging narrative storytelling format',
+    icon: '📖',
+    category: 'narrative',
+    suggestedParticipants: 1,
+    suggestedDuration: '3-10 minutes',
+    structure: [
+      'Once Upon a Time...',
+      'Character Introduction',
+      'The Challenge',
+      'The Journey',
+      'Resolution & Moral'
+    ]
+  },
+  'product-demo': {
+    name: 'Product Demo',
+    description: 'Product demonstration and showcase',
+    icon: '🛍️',
+    category: 'commercial',
+    suggestedParticipants: 1,
+    suggestedDuration: '3-7 minutes',
+    structure: [
+      'Product Introduction',
+      'Key Features',
+      'Live Demonstration',
+      'Use Cases',
+      'Where to Buy'
+    ]
+  },
+  'announcement': {
+    name: 'Announcement',
+    description: 'Official announcement or update',
+    icon: '📣',
+    category: 'broadcast',
+    suggestedParticipants: 1,
+    suggestedDuration: '1-3 minutes',
+    structure: [
+      'Greeting',
+      'The Big Announcement',
+      'Details & Timeline',
+      'What This Means',
+      'Next Steps'
+    ]
+  },
+  'debate': {
+    name: 'Debate',
+    description: 'Two-sided debate or discussion',
+    icon: '⚖️',
+    category: 'talk-show',
+    suggestedParticipants: 2,
+    suggestedDuration: '10-20 minutes',
+    structure: [
+      'Topic Introduction',
+      'Position A Argument',
+      'Position B Counter',
+      'Rebuttals',
+      'Conclusion'
+    ]
+  },
+  'explainer': {
+    name: 'Explainer',
+    description: 'Explain complex topics simply',
+    icon: '💡',
+    category: 'educational',
+    suggestedParticipants: 1,
+    suggestedDuration: '2-5 minutes',
+    structure: [
+      'The Question',
+      'Simple Explanation',
+      'Examples',
+      'Why It Matters',
+      'Summary'
+    ]
+  },
+  'comedy-skit': {
+    name: 'Comedy Skit',
+    description: 'Humorous short-form content',
+    icon: '😂',
+    category: 'entertainment',
+    suggestedParticipants: 2,
+    suggestedDuration: '1-3 minutes',
+    structure: [
+      'Setup',
+      'Build-up',
+      'Punchline',
+      'Tag/Callback',
+      'Outro'
+    ]
+  },
+  'motivational': {
+    name: 'Motivational',
+    description: 'Inspirational and motivational speech',
+    icon: '🔥',
+    category: 'narrative',
+    suggestedParticipants: 1,
+    suggestedDuration: '3-7 minutes',
+    structure: [
+      'Powerful Opening',
+      'The Challenge',
+      'The Breakthrough',
+      'Lessons Learned',
+      'Call to Action'
+    ]
+  },
   'custom': {
     name: 'Custom',
     description: 'Build your own format',
+    icon: '🎨',
+    category: 'custom',
     suggestedParticipants: 1,
     suggestedDuration: 'Variable',
     structure: []
   }
 };
+
+// Video type categories for filtering
+export const VIDEO_CATEGORIES = [
+  { id: 'all', name: 'All Types', icon: '🎬' },
+  { id: 'educational', name: 'Educational', icon: '📚' },
+  { id: 'commercial', name: 'Commercial', icon: '📢' },
+  { id: 'talk-show', name: 'Talk Show', icon: '🎤' },
+  { id: 'broadcast', name: 'Broadcast', icon: '📰' },
+  { id: 'narrative', name: 'Narrative', icon: '📖' },
+  { id: 'entertainment', name: 'Entertainment', icon: '🎭' },
+  { id: 'custom', name: 'Custom', icon: '🎨' }
+];
 
 export class VideoCreatorService {
   private canvas: HTMLCanvasElement;

@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Camera, Download, Copy, Share2, Loader, RefreshCw, Settings, Cpu, Zap } from 'lucide-react';
+import { Upload, Camera, Download, Copy, Share2, Loader, RefreshCw, Settings, Cpu, Zap, Sparkles } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { TensorFlowOCR } from '../services/TensorFlowOCR';
+import { AdvancedOCR } from '../services/AdvancedOCR';
 import { ImagePreprocessor, PreprocessingOptions } from '../services/ImagePreprocessor';
 import './ScanPage.css';
 
-type OCREngine = 'tesseract' | 'tensorflow' | 'hybrid';
+type OCREngine = 'tesseract' | 'tensorflow' | 'hybrid' | 'advanced';
 
 export function ScanPage() {
   const [image, setImage] = useState<string | null>(null);
@@ -15,9 +16,11 @@ export function ScanPage() {
   const [progressStatus, setProgressStatus] = useState('');
   const [confidence, setConfidence] = useState(0);
   const [ocrLanguage, setOcrLanguage] = useState('eng');
-  const [ocrEngine, setOcrEngine] = useState<OCREngine>('tesseract');
+  const [ocrEngine, setOcrEngine] = useState<OCREngine>('advanced');
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [preprocessingEnabled, setPreprocessingEnabled] = useState(true);
+  const [medicalMode, setMedicalMode] = useState(false);
+  const [multiPassEnabled, setMultiPassEnabled] = useState(true);
   const [preprocessingOptions, setPreprocessingOptions] = useState<Partial<PreprocessingOptions>>({
     grayscale: true,
     denoise: true,
@@ -32,9 +35,10 @@ export function ScanPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const tfOcrRef = useRef<TensorFlowOCR | null>(null);
+  const advancedOcrRef = useRef<AdvancedOCR | null>(null);
   const preprocessorRef = useRef<ImagePreprocessor | null>(null);
   
-  // Initialize TensorFlow OCR model
+  // Initialize OCR engines
   useEffect(() => {
     if (ocrEngine === 'tensorflow' || ocrEngine === 'hybrid') {
       if (!tfOcrRef.current) {
@@ -42,6 +46,21 @@ export function ScanPage() {
         tfOcr.initialize().then(() => {
           tfOcrRef.current = tfOcr;
         }).catch(console.error);
+      }
+    }
+    
+    if (ocrEngine === 'advanced') {
+      if (!advancedOcrRef.current) {
+        advancedOcrRef.current = new AdvancedOCR({
+          language: ocrLanguage,
+          multiPass: multiPassEnabled,
+          medicalMode: medicalMode,
+          aggressiveEnhancement: true,
+          spellCheck: true,
+          contextualCorrection: true,
+          maxPasses: 10,
+        });
+        advancedOcrRef.current.initialize().catch(console.error);
       }
     }
     
@@ -55,8 +74,12 @@ export function ScanPage() {
         tfOcrRef.current.dispose();
         tfOcrRef.current = null;
       }
+      if (advancedOcrRef.current) {
+        advancedOcrRef.current.dispose();
+        advancedOcrRef.current = null;
+      }
     };
-  }, [ocrEngine]);
+  }, [ocrEngine, ocrLanguage, medicalMode, multiPassEnabled]);
 
   const supportedLanguages = [
     { code: 'eng', name: 'English' },
@@ -154,13 +177,18 @@ export function ScanPage() {
           text = tfResult.text || tessResult.text;
           conf = tfResult.confidence;
         }
+      } else if (ocrEngine === 'advanced') {
+        // Use Advanced OCR with multi-pass recognition
+        const result = await processWithAdvancedOCR(imageData); // Use original for best preprocessing
+        text = result.text;
+        conf = result.confidence;
       }
       
       if (text) {
         setRecognizedText(text);
         setConfidence(conf);
       } else {
-        setRecognizedText('No text detected in this image. Please try:\n\n• A clearer image\n• Better lighting\n• Ensure text is visible and not too small\n• Try a different OCR engine');
+        setRecognizedText('No text detected in this image. Please try:\n\n• A clearer image\n• Better lighting\n• Ensure text is visible and not too small\n• Try the Advanced OCR engine for faint text');
         setConfidence(0);
       }
     } catch (error) {
@@ -171,6 +199,45 @@ export function ScanPage() {
       setIsProcessing(false);
       setProgress(100);
     }
+  };
+
+  const processWithAdvancedOCR = async (imageData: string): Promise<{ text: string; confidence: number }> => {
+    setProgressStatus('Initializing Advanced OCR...');
+    setProgress(5);
+    
+    // Create or update Advanced OCR instance with current settings
+    if (!advancedOcrRef.current) {
+      advancedOcrRef.current = new AdvancedOCR({
+        language: ocrLanguage,
+        multiPass: multiPassEnabled,
+        medicalMode: medicalMode,
+        aggressiveEnhancement: true,
+        spellCheck: true,
+        contextualCorrection: true,
+        maxPasses: 10,
+      });
+    }
+    
+    await advancedOcrRef.current.initialize();
+    
+    const result = await advancedOcrRef.current.recognize(
+      imageData,
+      (p, status) => {
+        setProgress(Math.round(p * 100));
+        setProgressStatus(status);
+      }
+    );
+    
+    console.log('Advanced OCR completed:', {
+      passes: result.rawResults.length,
+      corrections: result.corrections.length,
+      processingTime: result.processingTime,
+    });
+    
+    return {
+      text: result.text,
+      confidence: result.confidence,
+    };
   };
 
   const processWithTensorFlow = async (imageData: string): Promise<{ text: string; confidence: number }> => {
@@ -316,6 +383,14 @@ export function ScanPage() {
                 <Zap size={16} />
                 Hybrid
               </button>
+              <button
+                className={`engine-btn recommended ${ocrEngine === 'advanced' ? 'active' : ''}`}
+                onClick={() => setOcrEngine('advanced')}
+                title="Advanced OCR - Best for faint/poor handwriting with multi-pass recognition"
+              >
+                <Sparkles size={16} />
+                Advanced
+              </button>
             </div>
           </div>
           
@@ -331,6 +406,29 @@ export function ScanPage() {
           
           {showAdvancedSettings && (
             <div className="advanced-settings">
+              <h4>OCR Options</h4>
+              
+              {ocrEngine === 'advanced' && (
+                <>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={multiPassEnabled}
+                      onChange={(e) => setMultiPassEnabled(e.target.checked)}
+                    />
+                    Multi-Pass Recognition (10 passes for maximum accuracy)
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={medicalMode}
+                      onChange={(e) => setMedicalMode(e.target.checked)}
+                    />
+                    Medical Mode (Recognize medical terminology & prescriptions)
+                  </label>
+                </>
+              )}
+              
               <h4>Image Preprocessing</h4>
               <label className="checkbox-label">
                 <input
@@ -538,9 +636,10 @@ export function ScanPage() {
                     value={ocrEngine}
                     onChange={(e) => setOcrEngine(e.target.value as OCREngine)}
                   >
+                    <option value="advanced">✨ Advanced (Best for faint text)</option>
                     <option value="tesseract">Tesseract (Printed)</option>
                     <option value="tensorflow">TensorFlow (Handwriting)</option>
-                    <option value="hybrid">Hybrid (Best)</option>
+                    <option value="hybrid">Hybrid</option>
                   </select>
                 </div>
               </div>

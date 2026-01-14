@@ -105,6 +105,42 @@
   color: white;
 }
 
+.engine-btn.recommended {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  position: relative;
+}
+
+.engine-btn.recommended::after {
+  content: '★ BEST';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+}
+
+.engine-btn.recommended:hover {
+  border-color: #059669;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+}
+
+.engine-btn.recommended.active {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.engine-btn.recommended.active::after {
+  background: white;
+  color: #059669;
+}
+
 .engine-btn svg {
   width: 16px;
   height: 16px;

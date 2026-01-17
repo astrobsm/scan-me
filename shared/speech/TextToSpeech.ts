@@ -9,6 +9,11 @@ export interface TTSOptions {
   volume?: number;     // 0 to 1
   voice?: string;      // Voice name/ID
   language?: string;   // Language code
+  useSSML?: boolean;   // Enable SSML support
+  emotion?: 'neutral' | 'happy' | 'sad' | 'angry' | 'excited';
+  emphasis?: 'strong' | 'moderate' | 'reduced' | 'none';
+  audioFormat?: 'wav' | 'mp3' | 'ogg';
+  quality?: 'low' | 'medium' | 'high';
 }
 
 export interface CustomVoice {
@@ -16,6 +21,13 @@ export interface CustomVoice {
   name: string;
   audioData: ArrayBuffer;
   sampleRate: number;
+}
+
+export interface ProsodyControl {
+  rate?: string;       // 'x-slow', 'slow', 'medium', 'fast', 'x-fast'
+  pitch?: string;      // '+50%', '-20%', 'x-low', 'high'
+  volume?: string;     // 'silent', 'x-soft', 'soft', 'medium', 'loud'
+  contour?: string;    // Pitch contour string
 }
 
 export interface TTSResult {
@@ -29,6 +41,11 @@ const defaultOptions: TTSOptions = {
   pitch: 1.0,
   volume: 1.0,
   language: 'en-US',
+  useSSML: false,
+  emotion: 'neutral',
+  emphasis: 'none',
+  audioFormat: 'wav',
+  quality: 'medium',
 };
 
 export class TextToSpeechService {
@@ -36,6 +53,8 @@ export class TextToSpeechService {
   private customVoices: Map<string, CustomVoice> = new Map();
   private audioContext: AudioContext | null = null;
   private options: TTSOptions;
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private audioProcessor: AudioWorkletNode | null = null;
 
   constructor(options: Partial<TTSOptions> = {}) {
     this.options = { ...defaultOptions, ...options };
@@ -57,10 +76,18 @@ export class TextToSpeechService {
       }
 
       const opts = { ...this.options, ...options };
-      const utterance = new SpeechSynthesisUtterance(text);
       
-      utterance.rate = opts.rate!;
-      utterance.pitch = opts.pitch!;
+      // Process text with SSML if enabled
+      const processedText = opts.useSSML 
+        ? this.stripSSML(text)
+        : text;
+      
+      const utterance = new SpeechSynthesisUtterance(processedText);
+      
+      // Apply emotion adjustments
+      const emotionSettings = this.getEmotionSettings(opts.emotion!);
+      utterance.rate = opts.rate! * emotionSettings.rateMultiplier;
+      utterance.pitch = opts.pitch! * emotionSettings.pitchMultiplier;
       utterance.volume = opts.volume!;
       utterance.lang = opts.language!;
 
@@ -71,9 +98,16 @@ export class TextToSpeechService {
         if (voice) utterance.voice = voice;
       }
 
-      utterance.onend = () => resolve();
-      utterance.onerror = (e) => reject(e);
+      utterance.onend = () => {
+        this.currentUtterance = null;
+        resolve();
+      };
+      utterance.onerror = (e) => {
+        this.currentUtterance = null;
+        reject(e);
+      };
 
+      this.currentUtterance = utterance;
       this.synthesis.speak(utterance);
     });
   }
@@ -277,9 +311,122 @@ export class TextToSpeechService {
   }
 
   /**
+   * Convert text to SSML format
+   */
+  textToSSML(text: string, prosody?: ProsodyControl, breaks?: number[]): string {
+    let ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${this.options.language}">`;
+    
+    if (prosody) {
+      const prosodyAttrs = [];
+      if (prosody.rate) prosodyAttrs.push(`rate="${prosody.rate}"`);
+      if (prosody.pitch) prosodyAttrs.push(`pitch="${prosody.pitch}"`);
+      if (prosody.volume) prosodyAttrs.push(`volume="${prosody.volume}"`);
+      
+      ssml += `<prosody ${prosodyAttrs.join(' ')}>`;
+      ssml += text;
+      ssml += `</prosody>`;
+    } else {
+      ssml += text;
+    }
+    
+    ssml += '</speak>';
+    return ssml;
+  }
+
+  /**
+   * Strip SSML tags from text
+   */
+  private stripSSML(text: string): string {
+    return text.replace(/<[^>]*>/g, '');
+  }
+
+  /**
+   * Get emotion-based voice settings
+   */
+  private getEmotionSettings(emotion: string): { rateMultiplier: number; pitchMultiplier: number } {
+    const emotionMap: Record<string, { rateMultiplier: number; pitchMultiplier: number }> = {
+      neutral: { rateMultiplier: 1.0, pitchMultiplier: 1.0 },
+      happy: { rateMultiplier: 1.1, pitchMultiplier: 1.15 },
+      excited: { rateMultiplier: 1.2, pitchMultiplier: 1.2 },
+      sad: { rateMultiplier: 0.85, pitchMultiplier: 0.9 },
+      angry: { rateMultiplier: 1.15, pitchMultiplier: 1.1 },
+    };
+    
+    return emotionMap[emotion] || emotionMap.neutral;
+  }
+
+  /**
+   * Speak with emphasis
+   */
+  async speakWithEmphasis(text: string, emphasisLevel: 'strong' | 'moderate' | 'reduced' = 'moderate'): Promise<void> {
+    const emphasisMultipliers = {
+      strong: { rate: 0.9, pitch: 1.15, volume: 1.0 },
+      moderate: { rate: 0.95, pitch: 1.1, volume: 1.0 },
+      reduced: { rate: 0.98, pitch: 1.05, volume: 0.95 },
+    };
+    
+    const multipliers = emphasisMultipliers[emphasisLevel];
+    return this.speak(text, {
+      rate: this.options.rate! * multipliers.rate,
+      pitch: this.options.pitch! * multipliers.pitch,
+      volume: this.options.volume! * multipliers.volume,
+    });
+  }
+
+  /**
+   * Split text into sentences for natural pauses
+   */
+  private splitIntoSentences(text: string): string[] {
+    return text.match(/[^.!?]+[.!?]+/g) || [text];
+  }
+
+  /**
+   * Speak text with natural pauses
+   */
+  async speakNaturally(text: string): Promise<void> {
+    const sentences = this.splitIntoSentences(text);
+    
+    for (let i = 0; i < sentences.length; i++) {
+      await this.speak(sentences[i].trim());
+      
+      // Add natural pause between sentences
+      if (i < sentences.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+  }
+
+  /**
+   * Get speaking progress (0-1)
+   */
+  getSpeakingProgress(): number {
+    if (!this.currentUtterance || !this.synthesis) return 0;
+    
+    // This is an approximation as Web Speech API doesn't provide direct progress
+    return this.synthesis.speaking ? 0.5 : 1.0;
+  }
+
+  /**
+   * Check if currently speaking
+   */
+  get isSpeaking(): boolean {
+    return this.synthesis?.speaking || false;
+  }
+
+  /**
    * Update options
    */
   setOptions(options: Partial<TTSOptions>): void {
     this.options = { ...this.options, ...options };
+  }
+
+  /**
+   * Cleanup resources
+   */
+  dispose(): void {
+    this.stop();
+    if (this.audioContext) {
+      this.audioContext.close();
+    }
   }
 }

@@ -8,6 +8,11 @@ export interface STTOptions {
   continuous?: boolean;
   interimResults?: boolean;
   maxAlternatives?: number;
+  noiseReduction?: boolean;
+  confidenceThreshold?: number;
+  punctuation?: boolean;
+  profanityFilter?: boolean;
+  autoLanguageDetection?: boolean;
 }
 
 export interface TranscriptionResult {
@@ -33,6 +38,11 @@ const defaultOptions: STTOptions = {
   continuous: true,
   interimResults: true,
   maxAlternatives: 3,
+  noiseReduction: true,
+  confidenceThreshold: 0.5,
+  punctuation: true,
+  profanityFilter: false,
+  autoLanguageDetection: false,
 };
 
 export class SpeechToTextService {
@@ -42,10 +52,30 @@ export class SpeechToTextService {
   private onResultCallback: TranscriptionCallback | null = null;
   private onErrorCallback: ErrorCallback | null = null;
   private isSupported: boolean = false;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private noiseLevel: number = 0;
+  private detectedLanguages: Map<string, number> = new Map();
 
   constructor(options: Partial<STTOptions> = {}) {
     this.options = { ...defaultOptions, ...options };
+    if (typeof window !== 'undefined' && this.options.noiseReduction) {
+      this.initAudioContext();
+    }
     this.initRecognition();
+  }
+
+  /**
+   * Initialize audio context for noise analysis
+   */
+  private initAudioContext(): void {
+    try {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 2048;
+    } catch (e) {
+      console.warn('AudioContext not available for noise reduction');
+    }
   }
 
   /**
@@ -91,7 +121,27 @@ export class SpeechToTextService {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
       const transcript = result[0].transcript;
-      const confidence = result[0].confidence;
+      let confidence = result[0].confidence || 0.9;
+
+      // Apply noise reduction penalty if noise level is high
+      if (this.options.noiseReduction && this.noiseLevel > 0.7) {
+        confidence = confidence * 0.8;
+      }
+
+      // Filter by confidence threshold
+      if (confidence < this.options.confidenceThreshold!) {
+        continue;
+      }
+
+      // Auto-detect language if enabled
+      if (this.options.autoLanguageDetection && result.isFinal) {
+        this.detectLanguage(transcript);
+      }
+
+      // Apply punctuation if enabled
+      const processedText = this.options.punctuation 
+        ? this.addPunctuation(transcript) 
+        : transcript;
 
       const alternatives = [];
       for (let j = 1; j < result.length; j++) {
@@ -102,8 +152,8 @@ export class SpeechToTextService {
       }
 
       const transcriptionResult: TranscriptionResult = {
-        text: transcript,
-        confidence: confidence || 0.9,
+        text: processedText,
+        confidence: confidence,
         isFinal: result.isFinal,
         alternatives,
         timestamp: Date.now(),
@@ -268,10 +318,112 @@ export class SpeechToTextService {
   }
 
   /**
+   * Add smart punctuation to transcript
+   */
+  private addPunctuation(text: string): string {
+    let result = text;
+    
+    // Capitalize first letter
+    result = result.charAt(0).toUpperCase() + result.slice(1);
+    
+    // Add period at end if missing
+    if (!result.match(/[.!?]$/)) {
+      result += '.';
+    }
+    
+    // Capitalize after periods
+    result = result.replace(/([.!?])\s+([a-z])/g, (match, p1, p2) => {
+      return p1 + ' ' + p2.toUpperCase();
+    });
+    
+    return result;
+  }
+
+  /**
+   * Detect language from transcript
+   */
+  private detectLanguage(text: string): void {
+    // Simple heuristic-based language detection
+    const patterns = {
+      'en': /\b(the|and|is|are|was|were|have|has|been)\b/gi,
+      'es': /\b(el|la|los|las|de|que|es|en|por)\b/gi,
+      'fr': /\b(le|la|les|de|et|est|dans|pour|avec)\b/gi,
+      'de': /\b(der|die|das|und|ist|in|mit|zu)\b/gi,
+    };
+    
+    for (const [lang, pattern] of Object.entries(patterns)) {
+      const matches = text.match(pattern);
+      if (matches) {
+        const count = this.detectedLanguages.get(lang) || 0;
+        this.detectedLanguages.set(lang, count + matches.length);
+      }
+    }
+  }
+
+  /**
+   * Get most likely detected language
+   */
+  getDetectedLanguage(): string | null {
+    let maxLang = null;
+    let maxCount = 0;
+    
+    for (const [lang, count] of this.detectedLanguages.entries()) {
+      if (count > maxCount) {
+        maxCount = count;
+        maxLang = lang;
+      }
+    }
+    
+    return maxLang;
+  }
+
+  /**
+   * Get current noise level (0-1)
+   */
+  getNoiseLevel(): number {
+    if (!this.analyser) return 0;
+    
+    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(dataArray);
+    
+    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    this.noiseLevel = average / 255;
+    
+    return this.noiseLevel;
+  }
+
+  /**
+   * Get audio quality metrics
+   */
+  getAudioQuality(): { noise: number; clarity: number; quality: string } {
+    const noise = this.getNoiseLevel();
+    const clarity = 1 - noise;
+    
+    let quality = 'excellent';
+    if (noise > 0.7) quality = 'poor';
+    else if (noise > 0.5) quality = 'fair';
+    else if (noise > 0.3) quality = 'good';
+    
+    return { noise, clarity, quality };
+  }
+
+  /**
    * Generate unique ID
    */
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
+  /**
+   * Cleanup resources
+   */
+  dispose(): void {
+    this.stop();
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    this.analyser = null;
   }
 }
 

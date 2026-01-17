@@ -74,6 +74,25 @@ const Avatar3DCard = React.lazy(() =>
   import('../components/Avatar3D/Advanced3DEngine').then(mod => ({ default: mod.Avatar3DCard }))
 );
 
+// Lazy load 3D Video Preview
+const VideoPreview3D = React.lazy(() => 
+  import('../components/Avatar3D/VideoPreview3D').then(mod => ({ default: mod.VideoPreview3D }))
+);
+
+// Lazy load Pro 3D Character Loader (Reallusion, Mixamo, Ready Player Me)
+const Pro3DCharacterViewer = React.lazy(() => 
+  import('../components/Avatar3D/Pro3DCharacterLoader').then(mod => ({ default: mod.Pro3DCharacterViewer }))
+);
+const CustomModelUploader = React.lazy(() => 
+  import('../components/Avatar3D/Pro3DCharacterLoader').then(mod => ({ default: mod.CustomModelUploader }))
+);
+const ReadyPlayerMeIntegration = React.lazy(() => 
+  import('../components/Avatar3D/Pro3DCharacterLoader').then(mod => ({ default: mod.ReadyPlayerMeIntegration }))
+);
+
+// Import Pro3DCharacter type for custom imported models
+import type { Pro3DCharacter } from '../components/Avatar3D/Pro3DCharacterLoader';
+
 import { 
   NIGERIAN_AVATAR_LIBRARY, 
   AVATAR_CATEGORIES, 
@@ -146,6 +165,11 @@ export function VideoCreatorPage() {
   const [avatar3DEthnicity, setAvatar3DEthnicity] = useState<string>('all');
   const [avatar3DIsSpeaking, setAvatar3DIsSpeaking] = useState(false);
   const [avatar3DEmotion, setAvatar3DEmotion] = useState<string>('neutral');
+  
+  // Custom imported 3D characters (Reallusion, Mixamo, Ready Player Me)
+  const [customCharacters, setCustomCharacters] = useState<Pro3DCharacter[]>([]);
+  const [showCharacterImport, setShowCharacterImport] = useState(false);
+  const [previewCustomCharacter, setPreviewCustomCharacter] = useState<Pro3DCharacter | null>(null);
   
   // Library filter state
   const [avatarCategory, setAvatarCategory] = useState('all');
@@ -1088,6 +1112,162 @@ export function VideoCreatorPage() {
               </div>
             )}
             
+            {/* Import Professional 3D Characters (Reallusion, Mixamo, Ready Player Me) */}
+            <div className="pro-3d-import-section">
+              <div className="section-header-collapsible">
+                <h4>
+                  <span className="icon">📦</span>
+                  Import Professional 3D Characters
+                </h4>
+                <button 
+                  className={`btn-toggle ${showCharacterImport ? 'open' : ''}`}
+                  onClick={() => setShowCharacterImport(!showCharacterImport)}
+                >
+                  {showCharacterImport ? '▼ Hide' : '▶ Show'}
+                </button>
+              </div>
+              <p className="section-description">
+                Import high-quality 3D characters from Reallusion, Mixamo, Ready Player Me, or upload custom GLB files
+              </p>
+              
+              {showCharacterImport && (
+                <div className="import-options-container">
+                  <React.Suspense fallback={<div className="loading-spinner"></div>}>
+                    {/* Ready Player Me Integration */}
+                    <ReadyPlayerMeIntegration
+                      onAvatarReady={(character) => {
+                        setCustomCharacters(prev => [...prev, character]);
+                        setPreviewCustomCharacter(character);
+                      }}
+                    />
+                    
+                    {/* Custom GLB Upload */}
+                    <div style={{ marginTop: '20px' }}>
+                      <CustomModelUploader
+                        onModelLoaded={(character) => {
+                          setCustomCharacters(prev => [...prev, character]);
+                          setPreviewCustomCharacter(character);
+                        }}
+                      />
+                    </div>
+                  </React.Suspense>
+                  
+                  {/* Imported Characters Grid */}
+                  {customCharacters.length > 0 && (
+                    <div className="imported-characters-grid" style={{ marginTop: '20px' }}>
+                      <h5>📁 Your Imported Characters ({customCharacters.length})</h5>
+                      <div className="characters-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '10px' }}>
+                        {customCharacters.map(char => (
+                          <div 
+                            key={char.id} 
+                            className={`imported-character-card ${previewCustomCharacter?.id === char.id ? 'selected' : ''}`}
+                            onClick={() => setPreviewCustomCharacter(char)}
+                            style={{
+                              background: 'rgba(255,255,255,0.05)',
+                              borderRadius: '12px',
+                              padding: '15px',
+                              textAlign: 'center',
+                              cursor: 'pointer',
+                              border: previewCustomCharacter?.id === char.id ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <div style={{ fontSize: '32px', marginBottom: '8px' }}>
+                              {char.source === 'readyplayerme' ? '🎮' : char.source === 'mixamo' ? '🎬' : char.source === 'reallusion' ? '🌟' : '📦'}
+                            </div>
+                            <p style={{ color: 'white', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>{char.name}</p>
+                            <p style={{ color: '#64748b', fontSize: '11px' }}>{char.source}</p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCustomCharacters(prev => prev.filter(c => c.id !== char.id));
+                                if (previewCustomCharacter?.id === char.id) {
+                                  setPreviewCustomCharacter(null);
+                                }
+                              }}
+                              style={{
+                                marginTop: '8px',
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                border: '1px solid #ef4444',
+                                color: '#ef4444',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Preview Custom Character */}
+                  {previewCustomCharacter && (
+                    <div className="custom-character-preview" style={{ marginTop: '20px' }}>
+                      <h5>👁️ Preview: {previewCustomCharacter.name}</h5>
+                      <React.Suspense fallback={<div className="loading-spinner"></div>}>
+                        <Pro3DCharacterViewer
+                          character={previewCustomCharacter}
+                          isSpeaking={avatar3DIsSpeaking}
+                          emotion={avatar3DEmotion}
+                          width={400}
+                          height={450}
+                          showControls={true}
+                        />
+                      </React.Suspense>
+                      <div className="preview-controls" style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                        <button 
+                          className={`btn-speak ${avatar3DIsSpeaking ? 'active' : ''}`}
+                          onClick={() => setAvatar3DIsSpeaking(!avatar3DIsSpeaking)}
+                          style={{
+                            background: avatar3DIsSpeaking ? '#ef4444' : '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {avatar3DIsSpeaking ? '🔇 Stop Speaking' : '🎤 Test Speaking'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Add to participants with this character
+                            const charGender = previewCustomCharacter.gender === 'neutral' ? 'male' : (previewCustomCharacter.gender || 'male');
+                            addParticipant({
+                              id: `custom-${previewCustomCharacter.id}`,
+                              name: previewCustomCharacter.name,
+                              gender: charGender as 'male' | 'female',
+                              style: 'professional',
+                              skinTone: '#8D5524',
+                              hairColor: '#1a1a1a',
+                              hairStyle: 'natural',
+                              outfit: 'professional',
+                              thumbnail: previewCustomCharacter.thumbnailUrl || ''
+                            });
+                          }}
+                          style={{
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          ✅ Use This Character
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
             {/* Realistic 3D Avatars Section */}
             <div className="realistic-3d-avatars-section">
               <h4>🌟 Realistic 3D Avatars - All Ages</h4>
@@ -1569,15 +1749,39 @@ export function VideoCreatorPage() {
       case 'preview':
         return (
           <div className="wizard-step step-preview">
-            <h2>🎬 Preview Your Video</h2>
-            <p className="step-description">Watch your video with animated avatars, lip sync, and voice narration</p>
+            <h2>🎬 Preview Your 3D Video</h2>
+            <p className="step-description">Watch your video with advanced 3D animated avatars, lip sync, and voice narration</p>
             
-            <div className="preview-container enhanced">
+            <div className="preview-container enhanced preview-3d-container">
+              {/* 3D Preview using Three.js */}
+              <React.Suspense fallback={
+                <div className="preview-loading">
+                  <div className="loading-spinner"></div>
+                  <p>Loading 3D Preview...</p>
+                </div>
+              }>
+                <VideoPreview3D
+                  participants={participants.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    position: p.position,
+                  }))}
+                  currentDialogue={previewState ? {
+                    speakerId: previewState.currentSpeaker || '',
+                    text: previewState.currentText || '',
+                  } : undefined}
+                  isPlaying={previewPlaying}
+                  emotion={avatar3DEmotion}
+                />
+              </React.Suspense>
+              
+              {/* Fallback canvas for 2D mode */}
               <canvas
                 ref={previewCanvasRef}
                 width={1280}
                 height={720}
                 className="preview-canvas"
+                style={{ display: 'none' }}
               />
               
               <div className="preview-overlay">
@@ -1606,6 +1810,20 @@ export function VideoCreatorPage() {
                   <Eye size={20} />
                   Refresh Preview
                 </button>
+                
+                {/* Emotion controls for preview */}
+                <div className="emotion-controls-inline">
+                  {['neutral', 'happy', 'sad', 'surprised', 'angry'].map(em => (
+                    <button 
+                      key={em}
+                      className={`btn-emotion-mini ${avatar3DEmotion === em ? 'active' : ''}`}
+                      onClick={() => setAvatar3DEmotion(em)}
+                      title={em}
+                    >
+                      {em === 'neutral' ? '😐' : em === 'happy' ? '😊' : em === 'sad' ? '😢' : em === 'surprised' ? '😲' : '😠'}
+                    </button>
+                  ))}
+                </div>
               </div>
               
               {previewPlaying && previewState && (

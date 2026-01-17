@@ -1046,6 +1046,72 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* 3D Preview Container */
+.preview-3d-container {
+  min-height: 500px;
+}
+
+.preview-3d-container > div:first-child {
+  width: 100%;
+  max-width: 900px;
+  height: 500px;
+  margin: 0 auto;
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #94a3b8;
+}
+
+.preview-loading .loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.emotion-controls-inline {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-emotion-mini {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-emotion-mini:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.btn-emotion-mini.active {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
 .preview-canvas {
   width: 100%;
   max-width: 800px;
@@ -2201,6 +2267,90 @@
   background: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+/* Pro 3D Import Section */
+.pro-3d-import-section {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1e3a 100%);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.pro-3d-import-section .section-header-collapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pro-3d-import-section h4 {
+  color: #f1f5f9;
+  margin: 0;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pro-3d-import-section h4 .icon {
+  font-size: 1.3rem;
+}
+
+.pro-3d-import-section .section-description {
+  color: #94a3b8;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+.btn-toggle {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #a78bfa;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle:hover {
+  background: rgba(139, 92, 246, 0.3);
+}
+
+.btn-toggle.open {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+.import-options-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.imported-characters-grid h5 {
+  color: #e2e8f0;
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+}
+
+.imported-character-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.custom-character-preview {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.custom-character-preview h5 {
+  color: #f1f5f9;
+  margin: 0 0 15px 0;
+  text-align: center;
 }
 
 /* Realistic 3D Avatars Section */

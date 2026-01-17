@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 
 interface OCRSettings {
   medicalMode: boolean;
@@ -28,36 +28,72 @@ export function OCRProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [settings, setSettings] = useState<OCRSettings>(defaultSettings);
+  const isMountedRef = useRef(true);
+  const processingQueueRef = useRef<string[]>([]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     initializeOCR();
+    
+    return () => {
+      isMountedRef.current = false;
+      // Clear processing queue on unmount
+      processingQueueRef.current = [];
+    };
   }, []);
 
   const initializeOCR = async () => {
     try {
       // Initialize OCR engine
       // In production: await ocrEngine.initialize();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsReady(true);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (isMountedRef.current) {
+        setIsReady(true);
+      }
     } catch (error) {
       console.error('Failed to initialize OCR:', error);
+      if (isMountedRef.current) {
+        setIsReady(false);
+      }
     }
   };
 
-  const updateSettings = (newSettings: Partial<OCRSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<OCRSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
-  };
+  }, []);
 
-  const processImage = async (imageUri: string): Promise<string> => {
-    setIsProcessing(true);
-    try {
-      // In production: use actual OCR engine
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return 'Recognized text from image...';
-    } finally {
-      setIsProcessing(false);
+  const processImage = useCallback(async (imageUri: string): Promise<string> => {
+    if (!isMountedRef.current) return '';
+    
+    // Check if already processing this image
+    if (processingQueueRef.current.includes(imageUri)) {
+      console.warn('Image already in processing queue');
+      return '';
     }
-  };
+    
+    processingQueueRef.current.push(imageUri);
+    setIsProcessing(true);
+    
+    try {
+      // In production: use actual OCR engine with web workers
+      // For now, simulate with shorter delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (!isMountedRef.current) return '';
+      
+      return 'Recognized text from image...';
+    } catch (error) {
+      console.error('OCR processing error:', error);
+      return '';
+    } finally {
+      // Remove from queue
+      processingQueueRef.current = processingQueueRef.current.filter(uri => uri !== imageUri);
+      
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
+    }
+  }, []);
 
   return (
     <OCRContext.Provider

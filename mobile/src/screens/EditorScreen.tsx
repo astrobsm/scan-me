@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Share,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,17 +31,38 @@ export function EditorScreen({ navigation, route }: Props) {
   const [isProcessing, setIsProcessing] = useState(true);
   const [confidence, setConfidence] = useState(0);
   const [showImage, setShowImage] = useState(true);
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    processImage();
+    isMountedRef.current = true;
+    
+    // Defer heavy processing until after animations complete
+    const task = InteractionManager.runAfterInteractions(() => {
+      if (isMountedRef.current) {
+        processImage();
+      }
+    });
+
+    return () => {
+      isMountedRef.current = false;
+      task.cancel();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [imageUri]);
 
-  const processImage = async () => {
+  const processImage = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     setIsProcessing(true);
     try {
-      // Simulate OCR processing
-      // In production, use the actual OCR engine
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate OCR processing with shorter delay
+      // In production, use the actual OCR engine with web workers
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      if (!isMountedRef.current) return;
       
       // Placeholder result - replace with actual OCR
       const placeholderText = `This is a sample of recognized text from your handwritten document.
@@ -57,19 +79,23 @@ Please edit the text above if needed, then export to your preferred format.`;
       setRecognizedText(placeholderText);
       setConfidence(0.92);
     } catch (error) {
-      Alert.alert('Error', 'Failed to process image');
-      console.error('OCR error:', error);
+      if (isMountedRef.current) {
+        Alert.alert('Error', 'Failed to process image');
+        console.error('OCR error:', error);
+      }
     } finally {
-      setIsProcessing(false);
+      if (isMountedRef.current) {
+        setIsProcessing(false);
+      }
     }
-  };
+  }, [imageUri]);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(recognizedText);
     Alert.alert('Copied!', 'Text copied to clipboard');
-  };
+  }, [recognizedText]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       await Share.share({
         message: recognizedText,
@@ -78,21 +104,36 @@ Please edit the text above if needed, then export to your preferred format.`;
     } catch (error) {
       console.error('Share error:', error);
     }
-  };
+  }, [recognizedText]);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     Alert.alert('Export', 'Choose export format', [
       { text: 'PDF', onPress: () => exportAs('pdf') },
       { text: 'Word', onPress: () => exportAs('docx') },
       { text: 'Text', onPress: () => exportAs('txt') },
       { text: 'Cancel', style: 'cancel' },
     ]);
-  };
+  }, []);
 
-  const exportAs = (format: string) => {
+  const exportAs = useCallback((format: string) => {
     // Export logic will be implemented
     Alert.alert('Exporting...', `Exporting as ${format.toUpperCase()}`);
-  };
+  }, []);
+
+  // Debounced text change handler to prevent lag during typing
+  const handleTextChange = useCallback((text: string) => {
+    setRecognizedText(text);
+    
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set new timer for auto-save or other actions
+    debounceTimerRef.current = setTimeout(() => {
+      // Auto-save logic here if needed
+    }, 1000);
+  }, []);
 
   if (isProcessing) {
     return (
@@ -150,10 +191,11 @@ Please edit the text above if needed, then export to your preferred format.`;
           <TextInput
             style={styles.textInput}
             value={recognizedText}
-            onChangeText={setRecognizedText}
+            onChangeText={handleTextChange}
             multiline
             textAlignVertical="top"
             placeholder="Recognized text will appear here..."
+            maxLength={10000}
           />
         </View>
       </ScrollView>

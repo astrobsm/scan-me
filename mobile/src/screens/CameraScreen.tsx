@@ -22,10 +22,18 @@ export function CameraScreen({ navigation }: Props) {
   const cameraRef = useRef<Camera>(null);
 
   useEffect(() => {
+    let mounted = true;
+    
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      if (mounted) {
+        setHasPermission(status === 'granted');
+      }
     })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (hasPermission === null) {
@@ -59,13 +67,19 @@ export function CameraScreen({ navigation }: Props) {
 
     setIsCapturing(true);
     try {
+      // Reduced quality to prevent memory issues on mobile
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 1,
+        quality: 0.7, // Reduced from 1 to 0.7 for better performance
         base64: false,
+        skipProcessing: false,
+        exif: false, // Disable EXIF to reduce processing
       });
 
       if (photo?.uri) {
-        navigation.navigate('Editor', { imageUri: photo.uri });
+        // Small delay to prevent UI freeze
+        setTimeout(() => {
+          navigation.navigate('Editor', { imageUri: photo.uri });
+        }, 100);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to capture photo');

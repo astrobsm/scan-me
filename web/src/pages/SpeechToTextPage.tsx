@@ -67,7 +67,7 @@ export function SpeechToTextPage() {
     };
   }, []);
 
-  useEffect(() {
+  useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcript, interimText]);
 

@@ -8,12 +8,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, var(--accent-dark) 0%, var(--primary) 100%);
   color: white;
-  padding: 16px;
+  padding: 20px;
   z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -8px 32px rgba(5, 150, 105, 0.4);
   animation: slideUp 0.3s ease-out;
+  border-top: 3px solid var(--accent);
 }
 
 @keyframes slideUp {
@@ -57,20 +58,24 @@
 }
 
 .install-button {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-weight: 600;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  color: var(--primary);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: var(--transition);
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 .install-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+  background: white;
 }
 
 .dismiss-button {

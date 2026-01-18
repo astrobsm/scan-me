@@ -6,25 +6,44 @@
 /* Hero Section */
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: 4rem 0;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.08) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .hero-title {
-  font-size: 2.5rem;
-  font-weight: bold;
+  font-size: 3rem;
+  font-weight: 800;
   color: var(--text);
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 .hero-highlight {
-  color: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-subtitle {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
   color: var(--text-secondary);
   max-width: 600px;
-  margin: 0 auto 2rem;
+  margin: 0 auto 2.5rem;
+  line-height: 1.8;
 }
 
 .hero-actions {
@@ -58,26 +77,51 @@
 
 .feature-card {
   background: var(--card);
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: var(--radius);
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
 }
 
 .feature-icon {
-  width: 64px;
-  height: 64px;
-  background: #eff6ff;
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, var(--primary-light) 0%, #a7f3d0 100%);
   color: var(--primary);
-  border-radius: 50%;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem;
+  margin: 0 auto 1.25rem;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+}
+
+.feature-card:hover .feature-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .feature-icon.medical {
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #d97706;
 }
 
